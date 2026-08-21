@@ -1,0 +1,47 @@
+# macOS
+.DS_Store
+
+# Editor and IDE
+*.iml
+*.ipr
+*.iws
+.idea/
+.vscode/
+
+# Logs and local scratch files
+*.log
+*.swp
+local/
+
+# Flutter/Dart/Pub
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.pub-cache/
+.pub/
+build/
+coverage/
+**/doc/api/
+
+# Flutter obfuscation and symbolication
+app.*.map.json
+app.*.symbols
+
+# Android/Gradle
+.gradle/
+android/.gradle/
+android/local.properties
+android/app/debug/
+android/app/profile/
+android/app/release/
+
+# iOS/Flutter generated files
+ios/.symlinks/
+ios/Flutter/.last_build_id
+ios/Flutter/Generated.xcconfig
+ios/Flutter/flutter_export_environment.sh
+ios/Pods/
+
+# Maestro artifacts
+.maestro/tests/
+.maestro/cache/
