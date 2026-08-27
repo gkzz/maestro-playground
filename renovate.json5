@@ -1,0 +1,16 @@
+{
+  $schema: "https://docs.renovatebot.com/renovate-schema.json",
+
+  // 共通の Renovate 運用ポリシーは gkzz/renovate-config の default preset に集約する。
+  extends: ["github>gkzz/renovate-config"],
+
+  // このリポジトリ固有の dependency group を定義する。
+  packageRules: [
+    {
+      description: "Group manually pinned local/CI toolchain versions.",
+      matchManagers: ["mise"],
+      groupName: "toolchain",
+      groupSlug: "toolchain",
+    },
+  ],
+}
