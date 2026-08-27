@@ -1,0 +1,7 @@
+appId: com.android.settings
+tags:
+  - android
+  - settings
+---
+- launchApp
+- takeScreenshot: android-settings
