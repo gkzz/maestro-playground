@@ -1,0 +1,7 @@
+appId: com.apple.Preferences
+tags:
+  - ios
+  - settings
+---
+- launchApp
+- takeScreenshot: ios-settings
