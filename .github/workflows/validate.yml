@@ -1,0 +1,53 @@
+name: Validate
+
+on:
+  pull_request:
+    paths:
+      - .github/workflows/*.yml
+      - .maestro/*.yml
+      - default.json
+      - mise.toml
+      - renovate.json5
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/*.yml
+      - .maestro/*.yml
+      - default.json
+      - mise.toml
+      - renovate.json5
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  actionlint:
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Check workflow files
+        # https://github.com/rhysd/actionlint/blob/v1.7.12/docs/usage.md#use-actionlint-on-github-actions
+        uses: docker://rhysd/actionlint:1.7.12@sha256:b1934ee5f1c509618f2508e6eb47ee0d3520686341fec936f3b79331f9315667
+        with:
+          args: -color
+
+  maestro-check-syntax:
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Install tools
+        uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
+
+      - name: Check Maestro flow syntax
+        run: |
+          for flow in .maestro/*.yml; do
+            maestro check-syntax "$flow"
+          done

@@ -8,6 +8,8 @@ Maestro Flow から OS 標準の「設定」アプリを直接起動する検証
 
 - `.maestro/settings_android.yml`: Android Emulator の設定アプリ `com.android.settings` を起動する Maestro Flow。
 - `.maestro/settings_ios.yml`: iOS Simulator の設定アプリ `com.apple.Preferences` を起動する Maestro Flow。
+- `.github/workflows/e2e.yml`: エミュレータ/シミュレータ上の設定アプリを Maestro で直接起動する CI 実行例。
+- `.github/workflows/validate.yml`: GitHub Actions workflow の検証。
 - `mise.toml`: CI とローカル実行で使うツール定義。
 
 ## Maestro Flow がしていること
