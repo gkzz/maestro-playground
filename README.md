@@ -4,41 +4,24 @@ Maestro で iOS Simulator / Android Emulator を操作するための最小サ�
 
 Maestro Flow から OS 標準の「設定」アプリを直接起動する検証用リポジトリです。アプリ本体、deep link、platform channel、アプリ側の画面遷移コードは使いません。
 
-## ファイル
+## File tree
 
-- `.maestro/settings_android.yml`: Android Emulator の設定アプリ `com.android.settings` を起動する Maestro Flow。
-- `.maestro/settings_ios.yml`: iOS Simulator の設定アプリ `com.apple.Preferences` を起動する Maestro Flow。
-- `.github/workflows/e2e.yml`: エミュレータ/シミュレータ上の設定アプリを Maestro で直接起動する CI 実行例。
-- `.github/workflows/validate.yml`: GitHub Actions workflow の検証。
-- `mise.toml`: CI とローカル実行で使うツール定義。
-
-## Maestro Flow がしていること
-
-Android:
-
-```yaml
-appId: com.android.settings
----
-- launchApp
-- takeScreenshot: android-settings
+```
+.
+├── .github
+│   └── workflows
+│       ├── e2e.yml
+│       └── validate.yml
+├── .gitignore
+├── .maestro
+│   ├── settings_android.yml
+│   └── settings_ios.yml
+├── README.md
+├── mise.toml
+└── renovate.json5
 ```
 
-iOS:
-
-```yaml
-appId: com.apple.Preferences
----
-- launchApp
-- takeScreenshot: ios-settings
-```
-
-`appId` は Maestro が起動する対象アプリです。ここでは OS 標準の設定アプリを指定しています。
-
-`launchApp` は指定した `appId` のアプリを起動します。アプリ側に deep link、platform channel、設定画面を開くコードは不要です。
-
-`takeScreenshot` は起動できたことを目で確認しやすくするための最小ステップです。OS の表示言語に依存する `assertVisible` は入れていません。
-
-## 実行
+## Getting started
 
 Maestro CLI をインストールします。
 
