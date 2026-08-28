@@ -51,3 +51,16 @@ jobs:
           for flow in .maestro/*.yml; do
             maestro check-syntax "$flow"
           done
+
+  renovate-validate-config:
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Validate Renovate config
+        uses: docker://ghcr.io/renovatebot/renovate:44.17.1@sha256:90759c92793143ae7db68cd14e690109d8ace3527e17c7d188c96a1ad628282e
+        with:
+          entrypoint: renovate-config-validator
+          args: --no-global renovate.json5
