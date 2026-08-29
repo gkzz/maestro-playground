@@ -16,3 +16,4 @@ local/
 # Maestro artifacts
 .maestro/tests/
 .maestro/cache/
+artifacts/maestro/
