@@ -9,6 +9,9 @@ Maestro Flow から OS 標準の「設定」アプリを直接起動する検証
 ```
 .
 ├── .github
+│   ├── actions
+│   │   ├── setup-android-emulator
+│   │   └── setup-ios-simulator
 │   └── workflows
 │       ├── e2e.yml
 │       └── validate.yml
