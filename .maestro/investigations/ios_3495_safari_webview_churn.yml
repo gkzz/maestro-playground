@@ -1,0 +1,21 @@
+appId: com.apple.mobilesafari
+tags:
+  - ios
+  - investigation
+  - maestro-3495
+  - safari
+---
+- openLink: "${SAFARI_URL}"
+- extendedWaitUntil:
+    visible: "Maestro Docs"
+    timeout: 60000
+- extendedWaitUntil:
+    visible: "Resources overview"
+    timeout: 60000
+- takeScreenshot: ios-3495-safari-docs-loaded
+- repeat:
+    times: 80
+    commands:
+      - extendedWaitUntil:
+          visible: "Maestro Docs"
+          timeout: 4500
