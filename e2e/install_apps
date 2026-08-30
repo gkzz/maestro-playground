@@ -1,0 +1,39 @@
+#!/usr/bin/env sh
+set -eu
+
+platform="${1:-}"
+case "$platform" in
+  android|ios) ;;
+  *) echo "usage: $0 <android|ios>" >&2; exit 1 ;;
+esac
+
+script_dir="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
+apps_dir="$script_dir/apps"
+
+[ -d "$apps_dir" ] || { echo "$apps_dir not found; run e2e/download_apps first" >&2; exit 1; }
+
+case "$platform" in
+  android)
+    command -v adb >/dev/null 2>&1 || { echo "adb is required" >&2; exit 1; }
+    installed=false
+    for file in "$apps_dir"/*.apk; do
+      [ -e "$file" ] || continue
+      echo "install $(basename "$file")"
+      adb install -r "$file" >/dev/null
+      installed=true
+    done
+    [ "$installed" = true ] || { echo "no Android APK found in $apps_dir" >&2; exit 1; }
+    ;;
+  ios)
+    command -v xcrun >/dev/null 2>&1 || { echo "xcrun is required" >&2; exit 1; }
+    installed_list="${TMPDIR:-/tmp}/maestro-playground-installed-ios-apps.$$"
+    : > "$installed_list"
+    find "$apps_dir" -maxdepth 2 -name '*.app' -type d | while IFS= read -r file; do
+      echo "install $(basename "$file")"
+      xcrun simctl install booted "$file"
+      echo "$file" >> "$installed_list"
+    done
+    [ -s "$installed_list" ] || { rm -f "$installed_list"; echo "no iOS .app found in $apps_dir" >&2; exit 1; }
+    rm -f "$installed_list"
+    ;;
+esac

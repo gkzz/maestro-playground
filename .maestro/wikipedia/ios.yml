@@ -1,0 +1,7 @@
+appId: org.wikimedia.wikipedia
+tags:
+  - ios
+  - wikipedia
+---
+- launchApp
+- takeScreenshot: ios-wikipedia

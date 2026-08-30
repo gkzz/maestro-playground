@@ -1,0 +1,31 @@
+#!/usr/bin/env sh
+set -eu
+
+platform="${1:-}"
+case "$platform" in
+  android|ios|"") ;;
+  *) echo "usage: $0 [android|ios]" >&2; exit 1 ;;
+esac
+
+command -v curl >/dev/null 2>&1 || { echo "curl is required" >&2; exit 1; }
+
+script_dir="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
+apps_dir="$script_dir/apps"
+
+mkdir -p "$apps_dir"
+
+while IFS= read -r url; do
+  case "$url" in ""|\#*) continue ;; esac
+
+  case "$platform" in
+    android) echo "$url" | grep -qi '\.apk$' || continue ;;
+    ios) echo "$url" | grep -qi '\.zip$' || continue ;;
+  esac
+
+  echo "download $url"
+  app_file="$(curl -fsSL --output-dir "$apps_dir" --write-out "%{filename_effective}" -OJ "$url")"
+
+  case "$app_file" in
+    *.zip) unzip -qq -o -d "$apps_dir" "$apps_dir/$app_file" -x "__MACOSX/*" || true ;;
+  esac
+done < "$script_dir/manifest.txt"

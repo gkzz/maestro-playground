@@ -1,0 +1,7 @@
+appId: org.wikipedia
+tags:
+  - android
+  - wikipedia
+---
+- launchApp
+- takeScreenshot: android-wikipedia

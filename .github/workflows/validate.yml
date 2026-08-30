@@ -5,7 +5,8 @@ on:
     paths:
       - .github/workflows/*.yml
       - .github/actions/**/*.yml
-      - .maestro/*.yml
+      - .maestro/**/*.yml
+      - e2e/**
       - default.json
       - mise.toml
       - renovate.json5
@@ -15,7 +16,8 @@ on:
     paths:
       - .github/workflows/*.yml
       - .github/actions/**/*.yml
-      - .maestro/*.yml
+      - .maestro/**/*.yml
+      - e2e/**
       - default.json
       - mise.toml
       - renovate.json5
@@ -50,8 +52,21 @@ jobs:
 
       - name: Check Maestro flow syntax
         run: |
-          for flow in .maestro/*.yml; do
+          find .maestro -name '*.yml' -type f | sort | while IFS= read -r flow; do
             maestro check-syntax "$flow"
+          done
+
+  shell-check-syntax:
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Check shell script syntax
+        run: |
+          find e2e -maxdepth 1 -type f -perm -111 | sort | while IFS= read -r script; do
+            sh -n "$script"
           done
 
   renovate-validate-config:

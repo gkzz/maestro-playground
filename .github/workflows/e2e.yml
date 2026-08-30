@@ -47,10 +47,15 @@ jobs:
           emulator-boot-timeout: 1200
           emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -accel on -no-metrics -camera-back emulated
 
+      - name: Install test apps
+        run: |
+          e2e/download_apps android
+          e2e/install_apps android
+
       - name: Run Maestro on Android
         run: |
           maestro --version
-          maestro --platform android test .maestro/settings_android.yml --test-output-dir artifacts/maestro/android --debug-output artifacts/maestro/android --flatten-debug-output
+          maestro --platform android test .maestro/settings/android.yml .maestro/wikipedia/android.yml --test-output-dir artifacts/maestro/android --debug-output artifacts/maestro/android --flatten-debug-output
 
       - name: Shutdown Android Emulator
         if: always()
@@ -84,10 +89,15 @@ jobs:
           runtime-name: iOS 26.2
           device-type-name: iPhone 17 Pro
 
+      - name: Install test apps
+        run: |
+          e2e/download_apps ios
+          e2e/install_apps ios
+
       - name: Run Maestro on iOS
         run: |
           maestro --version
-          maestro --platform ios test .maestro/settings_ios.yml --test-output-dir artifacts/maestro/ios --debug-output artifacts/maestro/ios --flatten-debug-output
+          maestro --platform ios test .maestro/settings/ios.yml .maestro/wikipedia/ios.yml --test-output-dir artifacts/maestro/ios --debug-output artifacts/maestro/ios --flatten-debug-output
 
       - name: Upload Maestro artifacts
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1

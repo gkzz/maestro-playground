@@ -17,3 +17,4 @@ local/
 .maestro/tests/
 .maestro/cache/
 artifacts/maestro/
+e2e/apps/
