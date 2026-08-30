@@ -24,8 +24,12 @@ while IFS= read -r url; do
 
   echo "download $url"
   app_file="$(curl -fsSL --output-dir "$apps_dir" --write-out "%{filename_effective}" -OJ "$url")"
-
   case "$app_file" in
-    *.zip) unzip -qq -o -d "$apps_dir" "$apps_dir/$app_file" -x "__MACOSX/*" || true ;;
+    /*) app_path="$app_file" ;;
+    *) app_path="$apps_dir/$app_file" ;;
+  esac
+
+  case "$app_path" in
+    *.zip) unzip -qq -o -d "$apps_dir" "$app_path" -x "__MACOSX/*" ;;
   esac
 done < "$script_dir/manifest.txt"
