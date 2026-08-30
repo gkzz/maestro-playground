@@ -13,6 +13,40 @@ on:
           - all
           - android
           - ios
+          - ios-3494
+      iterations:
+        description: Number of serial Maestro runs per version
+        required: true
+        default: 3
+        type: number
+      iteration_timeout_seconds:
+        description: Hard timeout for each Maestro invocation
+        required: true
+        default: 300
+        type: number
+      xcode_version:
+        description: Xcode version for the iOS 3494 investigation
+        required: true
+        default: "26.6"
+        type: string
+      runtime_name:
+        description: iOS Simulator runtime for the iOS 3494 investigation
+        required: true
+        default: "iOS 26.5"
+        type: string
+      device_type_name:
+        description: iOS Simulator device type for the iOS 3494 investigation
+        required: true
+        default: "iPhone 17"
+        type: string
+      flow_path:
+        description: Maestro flow for the iOS 3494 investigation
+        required: true
+        default: ".maestro/investigations/ios_3494_springboard_crash.yml"
+        type: string
+
+permissions:
+  contents: read
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.event_name }}-${{ inputs.platform || 'all' }}
@@ -128,3 +162,503 @@ jobs:
           name: maestro-ios-${{ matrix.flow }}
           path: artifacts/maestro/ios/${{ matrix.flow }}
           retention-days: 1
+
+  investigate-ios-3494:
+    name: Maestro ${{ matrix.maestro_version }}
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.platform == 'ios-3494' }}
+    runs-on: macos-26
+    timeout-minutes: 120
+
+    strategy:
+      fail-fast: false
+      matrix:
+        maestro_version:
+          - "2.6.1"
+          - "2.8.0"
+
+    env:
+      MAESTRO_CLI_NO_ANALYTICS: "true"
+      MAESTRO_CLI_ANALYSIS_NOTIFICATION_DISABLED: "true"
+      MAESTRO_DRIVER_STARTUP_TIMEOUT: 240000
+      APP_ID: com.example.maestro3494
+      MAESTRO_VERSION: ${{ matrix.maestro_version }}
+      ITERATIONS: ${{ inputs.iterations }}
+      ITERATION_TIMEOUT_SECONDS: ${{ inputs.iteration_timeout_seconds }}
+      XCODE_VERSION: ${{ inputs.xcode_version }}
+      RUNTIME_NAME: ${{ inputs.runtime_name }}
+      DEVICE_TYPE_NAME: ${{ inputs.device_type_name }}
+      FLOW_PATH: ${{ inputs.flow_path }}
+      ARTIFACT_ROOT: artifacts/investigations/maestro-ios-3494
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Select Xcode
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          xcode_path="/Applications/Xcode_${XCODE_VERSION}.app/Contents/Developer"
+
+          if [ ! -d "$xcode_path" ]; then
+            echo "::error::Requested Xcode does not exist: $xcode_path"
+            echo
+            echo "Installed Xcode versions:"
+            find /Applications -maxdepth 1 -type d -name 'Xcode_*' -exec basename {} \; || true
+            exit 1
+          fi
+
+          sudo xcode-select -s "$xcode_path"
+
+          echo "Selected Xcode:"
+          xcode-select -p
+          xcodebuild -version
+
+      - name: Select Java 17
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          java_home="$(/usr/libexec/java_home -v 17)"
+
+          echo "JAVA_HOME=$java_home" >> "$GITHUB_ENV"
+          echo "$java_home/bin" >> "$GITHUB_PATH"
+
+          "$java_home/bin/java" -version
+
+      - name: Install mise tools
+        uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
+
+      - name: Setup iOS Simulator
+        uses: ./.github/actions/setup-ios-simulator
+        with:
+          runtime-name: ${{ env.RUNTIME_NAME }}
+          device-type-name: ${{ env.DEVICE_TYPE_NAME }}
+          simulator-name: Maestro3494-${{ matrix.maestro_version }}
+
+      - name: Validate investigation inputs
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if ! [[ "$ITERATIONS" =~ ^[1-9][0-9]*$ ]]; then
+            echo "::error::iterations must be a positive integer: $ITERATIONS"
+            exit 1
+          fi
+
+          if ! [[ "$ITERATION_TIMEOUT_SECONDS" =~ ^[1-9][0-9]*$ ]]; then
+            echo "::error::iteration_timeout_seconds must be a positive integer: $ITERATION_TIMEOUT_SECONDS"
+            exit 1
+          fi
+
+          if [ ! -f "$FLOW_PATH" ]; then
+            echo "::error::Maestro flow does not exist: $FLOW_PATH"
+            find .maestro -maxdepth 4 -type f -print 2>/dev/null || true
+            exit 1
+          fi
+
+          if [ -z "${SIMULATOR_UDID:-}" ]; then
+            echo "::error::SIMULATOR_UDID was not exported by setup-ios-simulator"
+            exit 1
+          fi
+
+          echo "Simulator UDID: $SIMULATOR_UDID"
+          xcrun simctl bootstatus "$SIMULATOR_UDID" -b
+          xcrun simctl list devices booted
+
+      - name: Install requested Maestro version
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          echo "Installing Maestro $MAESTRO_VERSION"
+          mise install "maestro@cli-$MAESTRO_VERSION"
+
+          echo
+          echo "Installed version:"
+          mise exec "maestro@cli-$MAESTRO_VERSION" -- maestro --version
+
+      - name: Build and install release simulator app
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          app_path="$(fixtures/ios-springboard-crash/build-simulator-app.sh "$PWD/artifacts/build/ios-3494")"
+
+          echo "APP_PATH=$app_path" >> "$GITHUB_ENV"
+
+          xcrun simctl install "$SIMULATOR_UDID" "$app_path"
+          xcrun simctl launch "$SIMULATOR_UDID" "$APP_ID"
+
+      - name: Capture environment
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          version_dir="$GITHUB_WORKSPACE/$ARTIFACT_ROOT/maestro-$MAESTRO_VERSION"
+          environment_dir="$version_dir/environment"
+
+          mkdir -p "$environment_dir"
+
+          {
+            echo "date_utc=$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
+            echo "runner_os=${RUNNER_OS:-}"
+            echo "runner_arch=${RUNNER_ARCH:-}"
+            echo "image_os=${ImageOS:-}"
+            echo "image_version=${ImageVersion:-}"
+            echo "maestro_version=$MAESTRO_VERSION"
+            echo "xcode_version=$XCODE_VERSION"
+            echo "runtime_name=$RUNTIME_NAME"
+            echo "device_type_name=$DEVICE_TYPE_NAME"
+            echo "simulator_udid=${SIMULATOR_UDID:-}"
+            echo "app_id=$APP_ID"
+            echo "app_path=${APP_PATH:-}"
+            echo "flow_path=$FLOW_PATH"
+            echo "iterations=$ITERATIONS"
+            echo "iteration_timeout_seconds=$ITERATION_TIMEOUT_SECONDS"
+          } > "$environment_dir/summary.env"
+
+          sw_vers > "$environment_dir/sw_vers.txt"
+          uname -a > "$environment_dir/uname.txt"
+          xcodebuild -version > "$environment_dir/xcodebuild-version.txt"
+          xcode-select -p > "$environment_dir/xcode-select.txt"
+          java -version > "$environment_dir/java-version.txt" 2>&1
+          mise exec "maestro@cli-$MAESTRO_VERSION" -- maestro --version > "$environment_dir/maestro-version.txt" 2>&1
+          xcrun simctl list > "$environment_dir/simctl-list.txt"
+          xcrun simctl list runtimes > "$environment_dir/simctl-runtimes.txt"
+          xcrun simctl list devicetypes > "$environment_dir/simctl-devicetypes.txt"
+          xcrun simctl list devices booted > "$environment_dir/simctl-booted.txt"
+
+      - name: Run serial SpringBoard crash investigation
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          version_dir="$GITHUB_WORKSPACE/$ARTIFACT_ROOT/maestro-$MAESTRO_VERSION"
+          crash_root="$version_dir/springboard-crashes"
+          summary_csv="$version_dir/summary.csv"
+
+          mkdir -p "$version_dir" "$crash_root"
+
+          echo \
+            "maestro_version,iteration,exit_code,timed_out,new_springboard_crashes,output_dir" \
+            > "$summary_csv"
+
+          passed=0
+          failed=0
+          timed_out_total=0
+          springboard_crash_total=0
+          failed_iterations=()
+          crash_iterations=()
+
+          diagnostic_dir="$HOME/Library/Logs/DiagnosticReports"
+
+          snapshot_crashes() {
+            local output_file="$1"
+
+            if [ -d "$diagnostic_dir" ]; then
+              find "$diagnostic_dir" -maxdepth 1 -type f -name 'SpringBoard-*.ips' -print | sort > "$output_file"
+            else
+              : > "$output_file"
+            fi
+          }
+
+          for iteration in $(seq 1 "$ITERATIONS"); do
+            run_id="$(printf 'run-%03d' "$iteration")"
+            run_dir="$version_dir/$run_id"
+            test_output_dir="$run_dir/test-output"
+            debug_output_dir="$run_dir/debug"
+
+            mkdir -p "$run_dir" "$test_output_dir" "$debug_output_dir"
+
+            echo
+            echo "============================================================"
+            echo "Maestro $MAESTRO_VERSION"
+            echo "Iteration $iteration / $ITERATIONS"
+            echo "Simulator $SIMULATOR_UDID"
+            echo "============================================================"
+
+            snapshot_crashes "$run_dir/springboard-before.txt"
+
+            {
+              echo "maestro_version=$MAESTRO_VERSION"
+              echo "iteration=$iteration"
+              echo "simulator_udid=$SIMULATOR_UDID"
+              echo "started_at_utc=$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
+            } > "$run_dir/run.env"
+
+            xcrun simctl list devices booted > "$run_dir/simctl-booted-before.txt" 2>&1 || true
+
+            export CURRENT_RUN_DIR="$run_dir"
+
+            python3 <<'PY'
+          import os
+          import pathlib
+          import signal
+          import subprocess
+          import time
+
+          run_dir = pathlib.Path(os.environ["CURRENT_RUN_DIR"])
+          version = os.environ["MAESTRO_VERSION"]
+          simulator_udid = os.environ["SIMULATOR_UDID"]
+          flow_path = os.environ["FLOW_PATH"]
+          timeout_seconds = int(os.environ["ITERATION_TIMEOUT_SECONDS"])
+
+          test_output_dir = run_dir / "test-output"
+          debug_output_dir = run_dir / "debug"
+
+          stdout_path = run_dir / "stdout.txt"
+          stderr_path = run_dir / "stderr.txt"
+
+          cmd = [
+              "mise",
+              "exec",
+              f"maestro@cli-{version}",
+              "--",
+              "maestro",
+              "--device",
+              simulator_udid,
+              "test",
+              flow_path,
+              "--test-output-dir",
+              str(test_output_dir),
+              "--debug-output",
+              str(debug_output_dir),
+              "--flatten-debug-output",
+          ]
+
+          (run_dir / "command.txt").write_text(" ".join(cmd) + "\n", encoding="utf-8")
+
+          exit_code = 127
+          timed_out = False
+          started = time.monotonic()
+
+          with stdout_path.open("wb") as stdout_file, stderr_path.open("wb") as stderr_file:
+              try:
+                  process = subprocess.Popen(
+                      cmd,
+                      stdout=stdout_file,
+                      stderr=stderr_file,
+                      start_new_session=True,
+                  )
+
+                  try:
+                      exit_code = process.wait(timeout=timeout_seconds)
+                  except subprocess.TimeoutExpired:
+                      timed_out = True
+
+                      try:
+                          os.killpg(process.pid, signal.SIGTERM)
+                      except ProcessLookupError:
+                          pass
+
+                      try:
+                          exit_code = process.wait(timeout=10)
+                      except subprocess.TimeoutExpired:
+                          try:
+                              os.killpg(process.pid, signal.SIGKILL)
+                          except ProcessLookupError:
+                              pass
+
+                          try:
+                              process.wait(timeout=10)
+                          except subprocess.TimeoutExpired:
+                              pass
+
+                      exit_code = 124
+              except Exception as exc:
+                  stderr_file.write(f"\nworkflow wrapper error: {exc!r}\n".encode("utf-8"))
+                  exit_code = 127
+
+          elapsed = time.monotonic() - started
+
+          (run_dir / "exit-code.txt").write_text(f"{exit_code}\n", encoding="utf-8")
+          (run_dir / "timed-out.txt").write_text("1\n" if timed_out else "0\n", encoding="utf-8")
+          (run_dir / "duration-seconds.txt").write_text(f"{elapsed:.3f}\n", encoding="utf-8")
+          PY
+
+            exit_code="$(cat "$run_dir/exit-code.txt")"
+            timed_out="$(cat "$run_dir/timed-out.txt")"
+
+            snapshot_crashes "$run_dir/springboard-after.txt"
+
+            comm -13 "$run_dir/springboard-before.txt" "$run_dir/springboard-after.txt" \
+              > "$run_dir/new-springboard-crashes.txt"
+
+            new_crash_count="$(wc -l < "$run_dir/new-springboard-crashes.txt" | xargs)"
+
+            if [ "$new_crash_count" -gt 0 ]; then
+              crash_iterations+=("$iteration")
+              crash_dir="$crash_root/$run_id"
+              mkdir -p "$crash_dir"
+
+              while IFS= read -r crash_report; do
+                if [ -f "$crash_report" ]; then
+                  cp "$crash_report" "$crash_dir/"
+                fi
+              done < "$run_dir/new-springboard-crashes.txt"
+            fi
+
+            {
+              echo "finished_at_utc=$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
+              echo "exit_code=$exit_code"
+              echo "timed_out=$timed_out"
+              echo "new_springboard_crashes=$new_crash_count"
+            } >> "$run_dir/run.env"
+
+            xcrun simctl list devices booted > "$run_dir/simctl-booted-after.txt" 2>&1 || true
+
+            if [ "$timed_out" -eq 1 ]; then
+              timed_out_total=$((timed_out_total + 1))
+            fi
+
+            springboard_crash_total=$((springboard_crash_total + new_crash_count))
+
+            echo \
+              "$MAESTRO_VERSION,$iteration,$exit_code,$timed_out,$new_crash_count,$run_dir" \
+              >> "$summary_csv"
+
+            if [ "$exit_code" -eq 0 ] && [ "$new_crash_count" -eq 0 ]; then
+              passed=$((passed + 1))
+            else
+              failed=$((failed + 1))
+              failed_iterations+=("$iteration")
+            fi
+
+            echo "Result: exit=$exit_code timeout=$timed_out newSpringBoardCrashes=$new_crash_count"
+          done
+
+          failed_iterations_csv=""
+          crash_iterations_csv=""
+
+          if [ "${#failed_iterations[@]}" -gt 0 ]; then
+            old_ifs="$IFS"
+            IFS=,
+            failed_iterations_csv="${failed_iterations[*]}"
+            IFS="$old_ifs"
+          fi
+
+          if [ "${#crash_iterations[@]}" -gt 0 ]; then
+            old_ifs="$IFS"
+            IFS=,
+            crash_iterations_csv="${crash_iterations[*]}"
+            IFS="$old_ifs"
+          fi
+
+          {
+            printf 'maestro_version=%q\n' "$MAESTRO_VERSION"
+            printf 'xcode_version=%q\n' "$XCODE_VERSION"
+            printf 'runtime_name=%q\n' "$RUNTIME_NAME"
+            printf 'device_type_name=%q\n' "$DEVICE_TYPE_NAME"
+            printf 'flow_path=%q\n' "$FLOW_PATH"
+            printf 'app_id=%q\n' "$APP_ID"
+            printf 'iterations=%q\n' "$ITERATIONS"
+            printf 'passed=%q\n' "$passed"
+            printf 'failed=%q\n' "$failed"
+            printf 'timed_out=%q\n' "$timed_out_total"
+            printf 'springboard_crashes=%q\n' "$springboard_crash_total"
+            printf 'failed_iterations=%q\n' "$failed_iterations_csv"
+            printf 'crash_iterations=%q\n' "$crash_iterations_csv"
+          } > "$version_dir/result.env"
+
+          echo
+          echo "============================================================"
+          echo "Completed Maestro $MAESTRO_VERSION"
+          echo "Passed: $passed"
+          echo "Failed: $failed"
+          echo "Timed out: $timed_out_total"
+          echo "SpringBoard crashes: $springboard_crash_total"
+          echo "============================================================"
+
+          if [ "$springboard_crash_total" -gt 0 ]; then
+            echo "::error::Detected $springboard_crash_total new SpringBoard crash report(s)."
+            exit 1
+          fi
+
+          if [ "$failed" -gt 0 ]; then
+            echo "::error::Detected $failed failed Maestro iteration(s)."
+            exit 1
+          fi
+
+      - name: Write job summary
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          version_dir="$GITHUB_WORKSPACE/$ARTIFACT_ROOT/maestro-$MAESTRO_VERSION"
+          result="$version_dir/result.env"
+
+          {
+            echo "## Maestro iOS #3494 investigation"
+            echo
+            echo "- Maestro: \`$MAESTRO_VERSION\`"
+            echo "- Xcode requested: \`$XCODE_VERSION\`"
+            echo "- Runtime: \`$RUNTIME_NAME\`"
+            echo "- Device: \`$DEVICE_TYPE_NAME\`"
+            echo "- App ID: \`$APP_ID\`"
+            echo "- Flow: \`$FLOW_PATH\`"
+            echo "- Simulator UDID: \`${SIMULATOR_UDID:-unknown}\`"
+            echo "- Per-run hard timeout: \`${ITERATION_TIMEOUT_SECONDS}s\`"
+            echo
+
+            environment_dir="$version_dir/environment"
+
+            if [ -f "$environment_dir/sw_vers.txt" ]; then
+              echo "### Environment"
+              echo
+              echo '```text'
+              cat "$environment_dir/sw_vers.txt"
+              echo
+              cat "$environment_dir/xcodebuild-version.txt"
+              echo
+              cat "$environment_dir/java-version.txt"
+              echo
+              cat "$environment_dir/maestro-version.txt"
+              echo '```'
+              echo
+            fi
+
+            echo "### Results"
+            echo
+
+            if [ -f "$result" ]; then
+              # shellcheck disable=SC1090
+              source "$result"
+
+              echo "- Iterations: $iterations"
+              echo "- Passed: $passed"
+              echo "- Failed: $failed"
+              echo "- Timed out: $timed_out"
+              echo "- New SpringBoard crash reports: $springboard_crashes"
+
+              if [ -n "$failed_iterations" ]; then
+                echo "- Failed iterations: $failed_iterations"
+              fi
+
+              if [ -n "$crash_iterations" ]; then
+                echo "- Crash iterations: $crash_iterations"
+              fi
+            else
+              echo "Investigation runner did not produce result.env."
+            fi
+
+            echo
+
+            if [ -f "$version_dir/summary.csv" ]; then
+              echo "### Per-iteration results"
+              echo
+              echo '```csv'
+              cat "$version_dir/summary.csv"
+              echo '```'
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload investigation artifacts
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: maestro-ios-3494-${{ matrix.maestro_version }}
+          path: artifacts/investigations/maestro-ios-3494/maestro-${{ matrix.maestro_version }}
+          retention-days: 14

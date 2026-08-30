@@ -52,7 +52,7 @@ jobs:
 
       - name: Check Maestro flow syntax
         run: |
-          find .maestro -name '*.yml' -type f | sort | while IFS= read -r flow; do
+          find .maestro -type f -name '*.yml' -print0 | while IFS= read -r -d '' flow; do
             maestro check-syntax "$flow"
           done
 

@@ -16,5 +16,7 @@ local/
 # Maestro artifacts
 .maestro/tests/
 .maestro/cache/
+artifacts/build/
+artifacts/investigations/
 artifacts/maestro/
 e2e/apps/

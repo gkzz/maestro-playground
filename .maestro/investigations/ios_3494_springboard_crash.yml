@@ -1,0 +1,11 @@
+appId: com.example.maestro3494
+tags:
+  - ios
+  - investigation
+  - maestro-3494
+---
+- launchApp:
+    clearState: false
+- assertVisible: "App title"
+- assertVisible: "Visible sheet title"
+- takeScreenshot: "location-prepermission"
