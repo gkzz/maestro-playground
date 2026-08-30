@@ -1,0 +1,200 @@
+name: Setup Android Emulator
+description: Install Android SDK components, create an AVD, and boot an Android Emulator.
+
+inputs:
+  api-level:
+    description: Android API level used for the platform and system image.
+    required: true
+  arch:
+    description: Android system image CPU architecture.
+    required: false
+    default: x86_64
+  target:
+    description: Android system image target.
+    required: false
+    default: google_apis
+  profile:
+    description: AVD hardware profile id.
+    required: false
+    default: pixel_7
+  avd-name:
+    description: AVD name.
+    required: false
+    default: ""
+  emulator-port:
+    description: Emulator console port.
+    required: false
+    default: "5554"
+  emulator-boot-timeout:
+    description: Emulator boot timeout in seconds.
+    required: false
+    default: "1200"
+  emulator-options:
+    description: Command-line options passed to the emulator.
+    required: false
+    default: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -accel on -no-metrics -camera-back emulated
+
+runs:
+  using: composite
+  steps:
+    - name: Install SDK components
+      shell: bash
+      env:
+        API_LEVEL: ${{ inputs.api-level }}
+        ARCH: ${{ inputs.arch }}
+        TARGET: ${{ inputs.target }}
+      run: |
+        set -euo pipefail
+
+        sdk_root="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-/usr/local/lib/android/sdk}}"
+        echo "ANDROID_SDK_ROOT=$sdk_root" >> "$GITHUB_ENV"
+        echo "ANDROID_HOME=$sdk_root" >> "$GITHUB_ENV"
+        echo "ANDROID_AVD_HOME=${HOME}/.android/avd" >> "$GITHUB_ENV"
+        echo "$sdk_root/platform-tools" >> "$GITHUB_PATH"
+        echo "$sdk_root/emulator" >> "$GITHUB_PATH"
+        echo "$sdk_root/cmdline-tools/latest/bin" >> "$GITHUB_PATH"
+
+        sdkmanager_cmd="$sdk_root/cmdline-tools/latest/bin/sdkmanager"
+        for cmd in "$sdkmanager_cmd" "$sdk_root/cmdline-tools/latest/bin/avdmanager"; do
+          if [[ ! -x "$cmd" ]]; then
+            echo "Required Android SDK command is missing or not executable: $cmd" >&2
+            exit 1
+          fi
+        done
+
+        set +o pipefail
+        yes | "$sdkmanager_cmd" --licenses >/dev/null
+        sdkmanager_status="${PIPESTATUS[1]}"
+        set -o pipefail
+        if [[ "$sdkmanager_status" -ne 0 ]]; then
+          echo "Failed to accept Android SDK licenses." >&2
+          exit "$sdkmanager_status"
+        fi
+
+        "$sdkmanager_cmd" --install \
+          "platform-tools" \
+          "emulator" \
+          "platforms;android-${API_LEVEL}" \
+          "system-images;android-${API_LEVEL};${TARGET};${ARCH}"
+
+        for cmd in "$sdk_root/emulator/emulator" "$sdk_root/platform-tools/adb"; do
+          if [[ ! -x "$cmd" ]]; then
+            echo "Required Android SDK command is missing or not executable after install: $cmd" >&2
+            exit 1
+          fi
+        done
+
+    - name: Create AVD
+      shell: bash
+      env:
+        API_LEVEL: ${{ inputs.api-level }}
+        ARCH: ${{ inputs.arch }}
+        TARGET: ${{ inputs.target }}
+        PROFILE: ${{ inputs.profile }}
+        AVD_NAME: ${{ inputs.avd-name }}
+      run: |
+        set -euo pipefail
+
+        sdk_root="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-/usr/local/lib/android/sdk}}"
+        avdmanager_cmd="$sdk_root/cmdline-tools/latest/bin/avdmanager"
+        emulator_cmd="$sdk_root/emulator/emulator"
+        avd_name="${AVD_NAME:-maestro-android-api-${API_LEVEL}}"
+        avd_home="${ANDROID_AVD_HOME:-${HOME}/.android/avd}"
+
+        mkdir -p "$avd_home"
+
+        set +o pipefail
+        printf "no\n" | "$avdmanager_cmd" create avd \
+          --force \
+          --name "$avd_name" \
+          --package "system-images;android-${API_LEVEL};${TARGET};${ARCH}" \
+          --device "$PROFILE"
+        avdmanager_status="${PIPESTATUS[1]}"
+        set -o pipefail
+
+        if [[ "$avdmanager_status" -ne 0 ]]; then
+          echo "Failed to create Android Virtual Device: $avd_name" >&2
+          exit "$avdmanager_status"
+        fi
+
+        echo "ANDROID_AVD_NAME=$avd_name" >> "$GITHUB_ENV"
+
+        if [[ ! -f "${avd_home}/${avd_name}.ini" ]]; then
+          echo "AVD was not created at expected path: ${avd_home}/${avd_name}.ini" >&2
+          echo "Available AVDs:" >&2
+          "$emulator_cmd" -list-avds >&2 || true
+          find "$avd_home" -maxdepth 2 -type f -print >&2 || true
+          exit 1
+        fi
+
+        if ! "$emulator_cmd" -list-avds | grep -Fxq "$avd_name"; then
+          echo "Created AVD is not visible to the emulator: $avd_name" >&2
+          echo "Available AVDs:" >&2
+          "$emulator_cmd" -list-avds >&2 || true
+          exit 1
+        fi
+
+    - name: Boot emulator
+      shell: bash
+      env:
+        API_LEVEL: ${{ inputs.api-level }}
+        AVD_NAME: ${{ inputs.avd-name }}
+        EMULATOR_PORT: ${{ inputs.emulator-port }}
+        EMULATOR_BOOT_TIMEOUT: ${{ inputs.emulator-boot-timeout }}
+        EMULATOR_OPTIONS: ${{ inputs.emulator-options }}
+      run: |
+        set -euo pipefail
+
+        sdk_root="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-/usr/local/lib/android/sdk}}"
+        adb_cmd="$sdk_root/platform-tools/adb"
+        emulator_cmd="$sdk_root/emulator/emulator"
+        avd_name="${AVD_NAME:-maestro-android-api-${API_LEVEL}}"
+        device_serial="emulator-${EMULATOR_PORT}"
+        deadline=$((SECONDS + EMULATOR_BOOT_TIMEOUT))
+        emulator_log="${RUNNER_TEMP:-/tmp}/android-emulator.log"
+
+        echo "ANDROID_EMULATOR_SERIAL=$device_serial" >> "$GITHUB_ENV"
+        echo "ANDROID_EMULATOR_LOG=$emulator_log" >> "$GITHUB_ENV"
+        echo "Available AVDs:"
+        "$emulator_cmd" -list-avds
+        echo "Starting Android Emulator ${device_serial} from AVD ${avd_name}."
+        # shellcheck disable=SC2086
+        nohup "$emulator_cmd" @"$avd_name" -port "$EMULATOR_PORT" $EMULATOR_OPTIONS > "$emulator_log" 2>&1 &
+        emulator_pid="$!"
+
+        until [[ "$("$adb_cmd" -s "$device_serial" get-state 2>/dev/null || true)" == "device" ]]; do
+          if ! kill -0 "$emulator_pid" 2>/dev/null; then
+            echo "Android Emulator process exited before connecting." >&2
+            "$adb_cmd" devices -l >&2 || true
+            tail -n 200 "$emulator_log" >&2 || true
+            exit 1
+          fi
+          if (( SECONDS >= deadline )); then
+            echo "Android Emulator did not connect within ${EMULATOR_BOOT_TIMEOUT} seconds." >&2
+            "$adb_cmd" devices -l >&2 || true
+            tail -n 200 "$emulator_log" >&2 || true
+            exit 1
+          fi
+          sleep 5
+        done
+
+        until [[ "$("$adb_cmd" -s "$device_serial" shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" == "1" ]]; do
+          if ! kill -0 "$emulator_pid" 2>/dev/null; then
+            echo "Android Emulator process exited before boot completed." >&2
+            "$adb_cmd" devices -l >&2 || true
+            tail -n 200 "$emulator_log" >&2 || true
+            exit 1
+          fi
+          if (( SECONDS >= deadline )); then
+            echo "Android Emulator did not boot within ${EMULATOR_BOOT_TIMEOUT} seconds." >&2
+            "$adb_cmd" devices -l >&2 || true
+            tail -n 200 "$emulator_log" >&2 || true
+            exit 1
+          fi
+          sleep 5
+        done
+
+        "$adb_cmd" -s "$device_serial" shell input keyevent 82 >/dev/null 2>&1 || true
+        "$adb_cmd" -s "$device_serial" shell settings put global window_animation_scale 0
+        "$adb_cmd" -s "$device_serial" shell settings put global transition_animation_scale 0
+        "$adb_cmd" -s "$device_serial" shell settings put global animator_duration_scale 0
