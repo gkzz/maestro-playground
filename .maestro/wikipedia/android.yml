@@ -4,4 +4,8 @@ tags:
   - wikipedia
 ---
 - launchApp
+- extendedWaitUntil:
+    visible: Wikipedia
+    timeout: 10000
+- assertVisible: Wikipedia
 - takeScreenshot: android-wikipedia

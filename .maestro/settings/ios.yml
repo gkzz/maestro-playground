@@ -4,4 +4,8 @@ tags:
   - settings
 ---
 - launchApp
+- extendedWaitUntil:
+    visible: Settings
+    timeout: 10000
+- assertVisible: Settings
 - takeScreenshot: ios-settings

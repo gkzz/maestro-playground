@@ -30,6 +30,15 @@ while IFS= read -r url; do
   esac
 
   case "$app_path" in
-    *.zip) unzip -qq -o -d "$apps_dir" "$app_path" -x "__MACOSX/*" ;;
+    *.zip)
+      set +e
+      unzip -qq -o -d "$apps_dir" "$app_path" -x "__MACOSX/*"
+      unzip_status=$?
+      set -e
+      case "$unzip_status" in
+        0|1) ;;
+        *) exit "$unzip_status" ;;
+      esac
+      ;;
   esac
 done < "$script_dir/manifest.txt"
