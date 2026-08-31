@@ -4,4 +4,8 @@ tags:
   - wikipedia
 ---
 - launchApp
+- extendedWaitUntil:
+    visible: The free encyclopedia
+    timeout: 10000
+- assertVisible: The free encyclopedia
 - takeScreenshot: ios-wikipedia
