@@ -33,8 +33,10 @@ for cmd in "$sdkmanager_cmd" "$avdmanager_cmd"; do
 done
 
 set +o pipefail
+set +e
 yes | "$sdkmanager_cmd" --licenses >/dev/null
 sdkmanager_status="${PIPESTATUS[1]}"
+set -e
 set -o pipefail
 if [[ "$sdkmanager_status" -ne 0 ]]; then
   echo "Failed to accept Android SDK licenses." >&2
