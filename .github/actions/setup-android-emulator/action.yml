@@ -44,7 +44,7 @@ runs:
         ARCH: ${{ inputs.arch }}
         TARGET: ${{ inputs.target }}
       run: |
-        "$GITHUB_ACTION_PATH/../../../utils/setup/android-sdk.sh"
+        "$GITHUB_ACTION_PATH/../../../utils/setup/android/android-sdk.sh"
 
     - name: Create AVD
       shell: bash
@@ -55,7 +55,7 @@ runs:
         PROFILE: ${{ inputs.profile }}
         AVD_NAME: ${{ inputs.avd-name }}
       run: |
-        "$GITHUB_ACTION_PATH/../../../utils/setup/android-avd.sh"
+        "$GITHUB_ACTION_PATH/../../../utils/setup/android/android-avd.sh"
 
     - name: Boot emulator
       shell: bash
@@ -66,4 +66,4 @@ runs:
         EMULATOR_BOOT_TIMEOUT: ${{ inputs.emulator-boot-timeout }}
         EMULATOR_OPTIONS: ${{ inputs.emulator-options }}
       run: |
-        "$GITHUB_ACTION_PATH/../../../utils/setup/android-emulator.sh"
+        "$GITHUB_ACTION_PATH/../../../utils/setup/android/android-emulator.sh"

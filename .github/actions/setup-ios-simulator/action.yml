@@ -23,4 +23,4 @@ runs:
         DEVICE_TYPE_NAME: ${{ inputs.device-type-name }}
         SIMULATOR_NAME: ${{ inputs.simulator-name }}
       run: |
-        "$GITHUB_ACTION_PATH/../../../utils/setup/ios-simulator.sh"
+        "$GITHUB_ACTION_PATH/../../../utils/setup/ios/ios-simulator.sh"

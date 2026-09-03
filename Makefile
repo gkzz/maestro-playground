@@ -67,13 +67,13 @@ install-ios-apps:
 	e2e/install_apps ios
 
 setup-android-sdk:
-	utils/setup/android-sdk.sh
+	utils/setup/android/android-sdk.sh
 
 setup-android-avd:
-	utils/setup/android-avd.sh
+	utils/setup/android/android-avd.sh
 
 boot-android-emulator:
-	utils/setup/android-emulator.sh
+	utils/setup/android/android-emulator.sh
 
 setup-ios-simulator:
-	utils/setup/ios-simulator.sh
+	utils/setup/ios/ios-simulator.sh
