@@ -65,7 +65,10 @@ jobs:
 
       - name: Check shell script syntax
         run: |
-          find e2e utils -type f -perm -111 | sort | while IFS= read -r script; do
+          find e2e -type f -perm -111 | sort | while IFS= read -r script; do
+            sh -n "$script"
+          done
+          find utils -type f -perm -111 | sort | while IFS= read -r script; do
             bash -n "$script"
           done
 
