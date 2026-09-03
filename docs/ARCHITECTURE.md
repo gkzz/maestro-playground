@@ -11,7 +11,7 @@ Maestro の実行コマンドや引数は [mise.toml](../mise.toml) の task に
 Android Emulator / iOS Simulator のセットアップ処理の実体は [mise.toml](../mise.toml) や [Makefile](../Makefile) には含めず、[utils/setup/](../utils/setup/) のスクリプトにまとめています。ローカルでは Makefile の target からそれらのスクリプトを呼び出します。
 
 > [!NOTE]
-> iOS の実行は GitHub Actions のみ対応しています。
+> iOS の実行は macOS 環境が必要です（Linux / Windows / WSL では非対応）。CI では GitHub Actions (macOS runner) を使用します。
 
 ```mermaid
 flowchart TB
