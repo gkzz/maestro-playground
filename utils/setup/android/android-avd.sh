@@ -14,12 +14,14 @@ avd_home="${ANDROID_AVD_HOME:-${HOME}/.android/avd}"
 mkdir -p "$avd_home"
 
 set +o pipefail
+set +e
 printf "no\n" | "$avdmanager_cmd" create avd \
   --force \
   --name "$avd_name" \
   --package "system-images;android-${api_level};${target};${arch}" \
   --device "$profile"
 avdmanager_status="${PIPESTATUS[1]}"
+set -e
 set -o pipefail
 
 if [[ "$avdmanager_status" -ne 0 ]]; then
