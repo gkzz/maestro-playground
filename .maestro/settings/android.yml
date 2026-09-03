@@ -5,7 +5,7 @@ tags:
 ---
 - launchApp
 - extendedWaitUntil:
-    visible: Settings
+    visible: Search settings
     timeout: 10000
-- assertVisible: Settings
+- assertVisible: Search settings
 - takeScreenshot: android-settings

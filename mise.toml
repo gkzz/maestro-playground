@@ -1,2 +1,84 @@
 [tools]
 maestro = "cli-2.8.0"
+
+[tasks."maestro:version"]
+description = "Print the mise-managed Maestro CLI version."
+run = "maestro --version"
+
+[tasks."maestro:check-syntax"]
+description = "Check all Maestro flow YAML files."
+run = '''
+set -eu
+
+find .maestro -name '*.yml' -type f | sort | while IFS= read -r flow; do
+  maestro check-syntax "$flow"
+done
+'''
+
+[tasks."maestro:test-android"]
+description = "Run Android Maestro flows. Set E2E_FLOW=settings or wikipedia to run one flow."
+run = '''
+set -eu
+
+if [ -f local/android.env ]; then
+  set -a
+  # shellcheck disable=SC1091
+  . local/android.env
+  set +a
+fi
+
+set -- --platform android
+if [ -n "${MAESTRO_HOST:-}" ]; then
+  set -- "$@" --host "$MAESTRO_HOST"
+fi
+
+case "${E2E_FLOW:-}" in
+  "")
+    output_dir="artifacts/maestro/android"
+    flow_args=".maestro/settings/android.yml .maestro/wikipedia/android.yml"
+    ;;
+  settings|wikipedia)
+    output_dir="artifacts/maestro/android/$E2E_FLOW"
+    flow_args=".maestro/$E2E_FLOW/android.yml"
+    ;;
+  *)
+    echo "E2E_FLOW must be one of: settings, wikipedia" >&2
+    exit 1
+    ;;
+esac
+
+maestro --version
+# shellcheck disable=SC2086
+maestro "$@" test $flow_args \
+  --test-output-dir "$output_dir" \
+  --debug-output "$output_dir" \
+  --flatten-debug-output
+'''
+
+[tasks."maestro:test-ios"]
+description = "Run iOS Maestro flows. Set E2E_FLOW=settings or wikipedia to run one flow."
+run = '''
+set -eu
+
+case "${E2E_FLOW:-}" in
+  "")
+    output_dir="artifacts/maestro/ios"
+    flow_args=".maestro/settings/ios.yml .maestro/wikipedia/ios.yml"
+    ;;
+  settings|wikipedia)
+    output_dir="artifacts/maestro/ios/$E2E_FLOW"
+    flow_args=".maestro/$E2E_FLOW/ios.yml"
+    ;;
+  *)
+    echo "E2E_FLOW must be one of: settings, wikipedia" >&2
+    exit 1
+    ;;
+esac
+
+maestro --version
+# shellcheck disable=SC2086
+maestro --platform ios test $flow_args \
+  --test-output-dir "$output_dir" \
+  --debug-output "$output_dir" \
+  --flatten-debug-output
+'''
