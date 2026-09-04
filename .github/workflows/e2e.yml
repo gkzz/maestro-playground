@@ -29,10 +29,8 @@ jobs:
       matrix:
         include:
           - flow: settings
-            flow_path: .maestro/settings/android.yml
             requires_apps: false
           - flow: wikipedia
-            flow_path: .maestro/wikipedia/android.yml
             requires_apps: true
 
     steps:
@@ -57,6 +55,14 @@ jobs:
           emulator-boot-timeout: 1200
           emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -accel on -no-metrics -camera-back emulated
 
+      - name: Write Android local config
+        run: |
+          mkdir -p local
+          {
+            echo "ANDROID_EMULATOR_SERIAL=${ANDROID_EMULATOR_SERIAL:-emulator-5554}"
+            echo "ADB_SERVER_SOCKET=tcp:127.0.0.1:5037"
+          } > local/android.env
+
       - name: Install test apps
         if: ${{ matrix.requires_apps }}
         run: |
@@ -64,9 +70,10 @@ jobs:
           e2e/install_apps android
 
       - name: Run Maestro on Android
+        env:
+          E2E_FLOW: ${{ matrix.flow }}
         run: |
-          maestro --version
-          maestro --platform android test "${{ matrix.flow_path }}" --test-output-dir "artifacts/maestro/android/${{ matrix.flow }}" --debug-output "artifacts/maestro/android/${{ matrix.flow }}" --flatten-debug-output
+          mise run maestro:test-android
 
       - name: Shutdown Android Emulator
         if: always()
@@ -92,10 +99,8 @@ jobs:
       matrix:
         include:
           - flow: settings
-            flow_path: .maestro/settings/ios.yml
             requires_apps: false
           - flow: wikipedia
-            flow_path: .maestro/wikipedia/ios.yml
             requires_apps: true
 
     steps:
@@ -117,9 +122,10 @@ jobs:
           e2e/install_apps ios
 
       - name: Run Maestro on iOS
+        env:
+          E2E_FLOW: ${{ matrix.flow }}
         run: |
-          maestro --version
-          maestro --platform ios test "${{ matrix.flow_path }}" --test-output-dir "artifacts/maestro/ios/${{ matrix.flow }}" --debug-output "artifacts/maestro/ios/${{ matrix.flow }}" --flatten-debug-output
+          mise run maestro:test-ios
 
       - name: Upload Maestro artifacts
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1

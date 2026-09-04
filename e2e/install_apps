@@ -9,11 +9,19 @@ esac
 
 script_dir="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
 apps_dir="$script_dir/apps"
+repo_dir="$(CDPATH= cd -- "$script_dir/.." && pwd)"
 
 [ -d "$apps_dir" ] || { echo "$apps_dir not found; run e2e/download_apps first" >&2; exit 1; }
 
 case "$platform" in
   android)
+    if [ -f "$repo_dir/local/android.env" ]; then
+      set -a
+      # shellcheck disable=SC1091
+      . "$repo_dir/local/android.env"
+      set +a
+    fi
+
     command -v adb >/dev/null 2>&1 || { echo "adb is required" >&2; exit 1; }
     installed=false
     for file in "$apps_dir"/*.apk; do

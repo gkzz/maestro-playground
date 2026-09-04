@@ -7,6 +7,7 @@ on:
       - .github/actions/**/*.yml
       - .maestro/**/*.yml
       - e2e/**
+      - utils/**
       - default.json
       - mise.toml
       - renovate.json5
@@ -18,6 +19,7 @@ on:
       - .github/actions/**/*.yml
       - .maestro/**/*.yml
       - e2e/**
+      - utils/**
       - default.json
       - mise.toml
       - renovate.json5
@@ -52,9 +54,7 @@ jobs:
 
       - name: Check Maestro flow syntax
         run: |
-          find .maestro -name '*.yml' -type f | sort | while IFS= read -r flow; do
-            maestro check-syntax "$flow"
-          done
+          mise run maestro:check-syntax
 
   shell-check-syntax:
     runs-on: ubuntu-24.04
@@ -65,8 +65,11 @@ jobs:
 
       - name: Check shell script syntax
         run: |
-          find e2e -maxdepth 1 -type f -perm -111 | sort | while IFS= read -r script; do
+          find e2e -type f -perm -111 | sort | while IFS= read -r script; do
             sh -n "$script"
+          done
+          find utils -type f -perm -111 | sort | while IFS= read -r script; do
+            bash -n "$script"
           done
 
   renovate-validate-config:

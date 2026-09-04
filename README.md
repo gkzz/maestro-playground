@@ -27,6 +27,19 @@ Maestro Flow から OS 標準の「設定」アプリと、追加のテスト対
 │   ├── download_apps
 │   ├── install_apps
 │   └── manifest.txt
+├── docs
+│   ├── ARCHITECTURE.md
+│   ├── DEVELOPMENT.md
+│   └── README.md
+├── utils
+│   └── setup
+│       ├── android
+│       │   ├── android-avd.sh
+│       │   ├── android-emulator.sh
+│       │   └── android-sdk.sh
+│       └── ios
+│           └── ios-simulator.sh
+├── Makefile
 ├── README.md
 ├── mise.toml
 └── renovate.json5
@@ -34,29 +47,56 @@ Maestro Flow から OS 標準の「設定」アプリと、追加のテスト対
 
 ## Getting started
 
-Maestro CLI をインストールします。
+Makefile 経由で `mise.toml` に定義された Maestro CLI をインストールします。
 
 ```sh
-curl -fsSL https://get.maestro.mobile.dev | bash
+make install
 ```
 
-Android Emulator を起動してから実行します。
+Android Emulator を起動してから実行します。WSL から Windows 側の Android Emulator / adb server に接続する場合は、git 管理外の `local/android.env` を作成します。
 
 ```sh
-e2e/download_apps android
-e2e/install_apps android
-maestro --platform android test .maestro/settings/android.yml
-maestro --platform android test .maestro/wikipedia/android.yml
+mkdir -p local
+cat > local/android.env <<'EOF'
+ADB_SERVER_SOCKET=tcp:127.0.0.1:5037
+MAESTRO_HOST=127.0.0.1
+EOF
+```
+
+`MAESTRO_HOST` が不要な環境では省略できます。`local/` は git 管理外です。
+
+Linux 上で Android SDK と Emulator もセットアップする場合は、Makefile の target を使います。
+
+```sh
+API_LEVEL=32 ARCH=x86_64 TARGET=google_apis make setup-android-sdk
+API_LEVEL=32 ARCH=x86_64 TARGET=google_apis PROFILE=pixel_7 make setup-android-avd
+API_LEVEL=32 EMULATOR_PORT=5554 make boot-android-emulator
+```
+
+```sh
+make download-android-apps
+make install-android-apps
+make test-android-settings
+make test-android-wikipedia
 ```
 
 iOS Simulator を起動してから実行します。
 
 ```sh
-e2e/download_apps ios
-e2e/install_apps ios
-maestro --platform ios test .maestro/settings/ios.yml
-maestro --platform ios test .maestro/wikipedia/ios.yml
+RUNTIME_NAME="iOS 26.2" DEVICE_TYPE_NAME="iPhone 17 Pro" make setup-ios-simulator
+make download-ios-apps
+make install-ios-apps
+make test-ios-settings
+make test-ios-wikipedia
 ```
+
+全 flow の syntax check は次で実行できます。
+
+```sh
+make check-syntax
+```
+
+この PR で目指す構成は [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) に、ローカルでの実行手順は [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) にまとめています。
 
 ## Test target apps
 
@@ -69,23 +109,17 @@ maestro --platform ios test .maestro/wikipedia/ios.yml
 
 ## Artifacts
 
-CI や失敗調査でログとキャプチャを残したい場合は、`--test-output-dir` と `--debug-output` を同じディレクトリに向けます。
+CI や失敗調査でログとキャプチャを残したい場合は、mise task が `--test-output-dir` と `--debug-output` を同じディレクトリに向けます。
 
 ```sh
-maestro --platform android test .maestro/settings/android.yml .maestro/wikipedia/android.yml \
-  --test-output-dir artifacts/maestro/android \
-  --debug-output artifacts/maestro/android \
-  --flatten-debug-output
+make test-android
 ```
 
 ```sh
-maestro --platform ios test .maestro/settings/ios.yml .maestro/wikipedia/ios.yml \
-  --test-output-dir artifacts/maestro/ios \
-  --debug-output artifacts/maestro/ios \
-  --flatten-debug-output
+make test-ios
 ```
 
-Maestro `cli-2.8.0` では、主な artifact は次のファイルとディレクトリに出力されます。
+`mise.toml` で管理している Maestro CLI では、主な artifact は次のファイルとディレクトリに出力されます。
 
 - `maestro.log`: Maestro 実行ログ
 - `manifest.json`: artifact 一覧
@@ -93,13 +127,8 @@ Maestro `cli-2.8.0` では、主な artifact は次のファイルとディレ�
 - `takeScreenshot/`: Flow の `takeScreenshot` で保存したキャプチャ
 - `screenshots/`: 失敗ステップなど Maestro が自動保存したキャプチャ
 
-レポートが必要な場合は、artifact 出力とは別に `--format` と `--output` を指定します。
+レポートが必要な場合は、`mise.toml` の task に `--format` と `--output` を追加します。
 
 ```sh
-maestro --platform android test .maestro/settings/android.yml .maestro/wikipedia/android.yml \
-  --test-output-dir artifacts/maestro/android \
-  --debug-output artifacts/maestro/android \
-  --flatten-debug-output \
-  --format junit \
-  --output artifacts/maestro/android/report.xml
+make test-android
 ```
