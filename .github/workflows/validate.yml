@@ -10,6 +10,7 @@ on:
       - utils/**
       - default.json
       - mise.toml
+      - mise.lock
       - renovate.json5
   push:
     branches:
@@ -22,6 +23,7 @@ on:
       - utils/**
       - default.json
       - mise.toml
+      - mise.lock
       - renovate.json5
   workflow_dispatch:
 
