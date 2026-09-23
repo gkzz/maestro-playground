@@ -2,7 +2,7 @@
 
 Maestro で iOS Simulator / Android Emulator を操作するための最小サンプルです。
 
-Maestro Flow から OS 標準の「設定」アプリと、追加のテスト対象アプリを起動する検証用リポジトリです。追加アプリは [mobile-dev-inc/Maestro](https://github.com/mobile-dev-inc/Maestro/tree/main/e2e) の E2E と同じ配布済みアプリを `e2e/manifest.txt` から取得します。
+Maestro Flow から OS 標準の「設定」アプリと、追加のテスト対象アプリを起動する検証用リポジトリです。追加アプリは [mobile-dev-inc/Maestro](https://github.com/mobile-dev-inc/Maestro/tree/main/e2e) の E2E と同じ配布済みアプリを [e2e/manifest.txt](e2e/manifest.txt) から取得します。
 
 ## File tree
 
@@ -14,7 +14,7 @@ Maestro Flow から OS 標準の「設定」アプリと、追加のテスト対
 │   │   └── setup-ios-simulator
 │   └── workflows
 │       ├── e2e.yml
-│       └── validate.yml
+│       └── lint.yml
 ├── .gitignore
 ├── .maestro
 │   ├── settings
@@ -41,13 +41,13 @@ Maestro Flow から OS 標準の「設定」アプリと、追加のテスト対
 │           └── ios-simulator.sh
 ├── Makefile
 ├── README.md
-├── mise.toml
+├── mise/config.toml
 └── renovate.json5
 ```
 
 ## Getting started
 
-Makefile 経由で `mise.toml` に定義された Maestro CLI をインストールします。
+Makefile 経由で [mise/config.toml](mise/config.toml) に定義された Maestro CLI をインストールします。
 
 ```sh
 make install
@@ -119,7 +119,7 @@ make test-android
 make test-ios
 ```
 
-`mise.toml` で管理している Maestro CLI では、主な artifact は次のファイルとディレクトリに出力されます。
+[mise/config.toml](mise/config.toml) で管理している Maestro CLI では、主な artifact は次のファイルとディレクトリに出力されます。
 
 - `maestro.log`: Maestro 実行ログ
 - `manifest.json`: artifact 一覧
@@ -127,7 +127,7 @@ make test-ios
 - `takeScreenshot/`: Flow の `takeScreenshot` で保存したキャプチャ
 - `screenshots/`: 失敗ステップなど Maestro が自動保存したキャプチャ
 
-レポートが必要な場合は、`mise.toml` の task に `--format` と `--output` を追加します。
+レポートが必要な場合は、[mise/config.toml](mise/config.toml) の task に `--format` と `--output` を追加します。
 
 ```sh
 make test-android

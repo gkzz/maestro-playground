@@ -2,15 +2,15 @@
 
 このリポジトリでは、Maestro を使った Android / iOS の E2E テストを試しています。
 
-Maestro CLI のバージョンとテストの実行方法は `mise.toml` で管理し、ローカルと CI から同じコマンドを実行できるようにしています。
+Maestro CLI のバージョンとテストの実行方法は [mise/config.toml](../mise/config.toml) で管理し、ローカルと CI から同じコマンドを実行できるようにしています。
 
 ## Overview
 
 主な構成は次のとおりです。
 
 * `.maestro/`: Maestro のテスト
-* `mise.toml`: Maestro CLI のバージョンとテスト実行用の task
-* `Makefile`: ローカルでよく使うコマンドとセットアップスクリプトの入口
+* [mise/config.toml](../mise/config.toml): Maestro CLI のバージョンとテスト実行用の task
+* [Makefile](../Makefile): ローカルでよく使うコマンドとセットアップスクリプトの入口
 * `utils/setup/android/`, `utils/setup/ios/`: Android Emulator / iOS Simulator のセットアップ
 * `e2e/`: テストで使用するアプリのダウンロードやインストール
 * `local/`: ローカル環境固有の設定
@@ -25,3 +25,13 @@ Maestro CLI のバージョンとテストの実行方法は `mise.toml` で管�
 ## Architecture
 
 ローカルと CI で共有している処理や、それぞれのコマンドの関係については [ARCHITECTURE.md](./ARCHITECTURE.md) を参照してください。
+
+### mise本体のバージョン
+
+`mise/config.toml` の `min_version` は、このプロジェクトの設定を利用するために必要なmiseの最低バージョンを表します。
+
+ローカル環境では、`min_version` 以上のmiseが利用可能であることを前提とします。mise本体のインストール方法やバージョン管理方法は、このリポジトリでは規定しません。
+
+CIでは、[`.github/actions/setup-mise/action.yml`](../.github/actions/setup-mise/action.yml) に記載したバージョンとSHA-256でmiseをbootstrapして使用します。CIで使用するmiseのバージョンは `min_version` と同じ値に揃えます。
+
+mise本体を更新するときは、`min_version` と `action.yml` のバージョン、およびプラットフォーム別SHA-256を同じリリースへまとめて更新してください。

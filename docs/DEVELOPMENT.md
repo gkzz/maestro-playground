@@ -14,7 +14,7 @@
 make install
 ```
 
-Maestro CLI のバージョンは [mise.toml](../mise.toml) で管理しています。
+Maestro CLI のバージョンは [mise/config.toml](../mise/config.toml) で管理しています。
 
 セットアップ用のスクリプトは [utils/setup/](../utils/setup/) にあります。
 
@@ -37,16 +37,6 @@ API_LEVEL=32 ARCH=x86_64 TARGET=google_apis make setup-android-sdk
 API_LEVEL=32 ARCH=x86_64 TARGET=google_apis PROFILE=pixel_7 make setup-android-avd
 API_LEVEL=32 EMULATOR_PORT=5554 make boot-android-emulator
 ```
-
-## Syntax Check
-
-Maestro のテストを実行する前に構文を確認できます。
-
-```
-make check-syntax
-```
-
-内部では `mise run maestro:check-syntax` を実行します。
 
 ## Android
 
@@ -112,9 +102,9 @@ CI でも同じディレクトリ構成を使用します。
 
 ## CI
 
-Pull Request では `Validate` と `E2E` を実行します。
+Pull Request では `Lint` と `E2E` を実行します。
 
-`Validate` では workflow、shell script、Maestro flow などの構文を確認します。
+`Lint` では workflow、shell script、Maestro flow などの構文を確認します。
 
 `E2E` では Android / iOS の各 flow を実行します。
 

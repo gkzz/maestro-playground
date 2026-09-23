@@ -1,0 +1,33 @@
+name: Setup mise
+description: Install the CI-pinned mise version and optionally install project tools
+inputs:
+  install:
+    description: Install tools declared by the project mise configuration
+    required: false
+    default: "false"
+runs:
+  using: composite
+  steps:
+    - name: Install mise
+      shell: bash
+      run: |
+        set -euo pipefail
+        "./setup/mise-install.sh" --apply
+        echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+        echo "$HOME/.local/share/mise/shims" >> "$GITHUB_PATH"
+        echo "MISE_CONFIG_FILE=$GITHUB_WORKSPACE/mise/config.toml" >> "$GITHUB_ENV"
+      env:
+        # CI-only mise pin.
+        MISE_VERSION: "2026.8.15"
+        MISE_SHA256_LINUX_X64: "0ed4ee8bcf229718bead0d0aa83de865803f3fe25cc6c71a41e3a8bd57c40a33"
+        MISE_SHA256_LINUX_ARM64: "d5f9b7e6b36b5cf5aaab0dc4d7e29ee74224281b1a81a228bdc1cd1f3edf9d49"
+        MISE_SHA256_MACOS_X64: "be04cf3b31e39bcf1d060fb4a0f69959633cbebda5395f7082799aac5d40fa7f"
+        MISE_SHA256_MACOS_ARM64: "c13cca22b2c7d6ea3c3ccc7c1b5ff7d1b48b2d40c0b7fb3cf06964540c00afad"
+
+    - name: Install mise tools
+      if: inputs.install == 'true'
+      shell: bash
+      run: |
+        set -euo pipefail
+        mise trust --yes "$MISE_CONFIG_FILE"
+        mise install --locked

@@ -1,4 +1,5 @@
 SHELL := /bin/bash
+MISE := MISE_CONFIG_FILE="$(CURDIR)/mise/config.toml" mise
 
 .PHONY: help install maestro-version check-syntax \
 	test-android test-android-settings test-android-wikipedia \
@@ -28,52 +29,53 @@ help:
 		'  setup-ios-simulator     Create and boot iOS Simulator'
 
 install:
-	mise install
+	$(MISE) trust --yes "$(CURDIR)/mise/config.toml"
+	$(MISE) install --locked
 
 maestro-version:
-	mise run maestro:version
+	$(MISE) run maestro:version
 
 check-syntax:
-	mise run maestro:check-syntax
+	$(MISE) run maestro:check-syntax
 
 test-android:
-	mise run maestro:test-android
+	$(MISE) run maestro:test-android
 
 test-android-settings:
-	E2E_FLOW=settings mise run maestro:test-android
+	E2E_FLOW=settings $(MISE) run maestro:test-android
 
 test-android-wikipedia:
-	E2E_FLOW=wikipedia mise run maestro:test-android
+	E2E_FLOW=wikipedia $(MISE) run maestro:test-android
 
 test-ios:
-	mise run maestro:test-ios
+	$(MISE) run maestro:test-ios
 
 test-ios-settings:
-	E2E_FLOW=settings mise run maestro:test-ios
+	E2E_FLOW=settings $(MISE) run maestro:test-ios
 
 test-ios-wikipedia:
-	E2E_FLOW=wikipedia mise run maestro:test-ios
+	E2E_FLOW=wikipedia $(MISE) run maestro:test-ios
 
 download-android-apps:
-	e2e/download_apps android
+	"./e2e/download_apps" android
 
 download-ios-apps:
-	e2e/download_apps ios
+	"./e2e/download_apps" ios
 
 install-android-apps:
-	e2e/install_apps android
+	"./e2e/install_apps" android
 
 install-ios-apps:
-	e2e/install_apps ios
+	"./e2e/install_apps" ios
 
 setup-android-sdk:
-	utils/setup/android/android-sdk.sh
+	"./utils/setup/android/android-sdk.sh"
 
 setup-android-avd:
-	utils/setup/android/android-avd.sh
+	"./utils/setup/android/android-avd.sh"
 
 boot-android-emulator:
-	utils/setup/android/android-emulator.sh
+	"./utils/setup/android/android-emulator.sh"
 
 setup-ios-simulator:
-	utils/setup/ios/ios-simulator.sh
+	"./utils/setup/ios/ios-simulator.sh"
