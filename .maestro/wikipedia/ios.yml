@@ -5,7 +5,7 @@ tags:
 ---
 - launchApp
 - extendedWaitUntil:
-    visible: The free encyclopedia
+    visible: フリー百科事典
     timeout: 10000
-- assertVisible: The free encyclopedia
+- assertVisible: フリー百科事典
 - takeScreenshot: ios-wikipedia

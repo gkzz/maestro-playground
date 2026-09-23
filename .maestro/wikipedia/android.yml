@@ -5,7 +5,7 @@ tags:
 ---
 - launchApp
 - extendedWaitUntil:
-    visible: (?s)The Free Encyclopedia.*
+    visible: (?s)フリー百科事典.*
     timeout: 10000
-- assertVisible: (?s)The Free Encyclopedia.*
+- assertVisible: (?s)フリー百科事典.*
 - takeScreenshot: android-wikipedia
