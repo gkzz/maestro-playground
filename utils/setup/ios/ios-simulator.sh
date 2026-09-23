@@ -13,6 +13,8 @@ echo "Using device type: $device_type_name ($device_type_identifier)"
 device_id="$(xcrun simctl create "${simulator_name}-$(uuidgen)" "$device_type_identifier" "$runtime_identifier")"
 xcrun simctl boot "$device_id"
 xcrun simctl bootstatus "$device_id" -b
+xcrun simctl spawn "$device_id" defaults write NSGlobalDomain AppleLanguages -array ja
+xcrun simctl spawn "$device_id" defaults write NSGlobalDomain AppleLocale -string ja_JP
 
 if [[ -n "${GITHUB_ENV:-}" ]]; then
   echo "SIMULATOR_UDID=$device_id" >> "$GITHUB_ENV"

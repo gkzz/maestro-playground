@@ -59,6 +59,8 @@ until [[ "$("$adb_cmd" -s "$device_serial" shell getprop sys.boot_completed 2>/d
   sleep 5
 done
 
+"$adb_cmd" -s "$device_serial" shell cmd locale set ja-JP
+
 "$adb_cmd" -s "$device_serial" shell input keyevent 82 >/dev/null 2>&1 || true
 "$adb_cmd" -s "$device_serial" shell settings put global window_animation_scale 0
 "$adb_cmd" -s "$device_serial" shell settings put global transition_animation_scale 0

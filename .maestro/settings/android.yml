@@ -5,7 +5,7 @@ tags:
 ---
 - launchApp
 - extendedWaitUntil:
-    visible: Search settings
+    visible: 設定を検索
     timeout: 10000
-- assertVisible: Search settings
+- assertVisible: 設定を検索
 - takeScreenshot: android-settings
