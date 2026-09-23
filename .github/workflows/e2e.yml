@@ -13,9 +13,17 @@ on:
           - all
           - android
           - ios
+      locale:
+        description: Device locale
+        required: true
+        default: ja
+        type: choice
+        options:
+          - ja
+          - en
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}-${{ github.event_name }}-${{ inputs.platform || 'all' }}
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ github.event_name }}-${{ inputs.platform || 'all' }}-${{ inputs.locale || 'ja' }}
   cancel-in-progress: true
 
 jobs:
@@ -24,6 +32,8 @@ jobs:
     if: ${{ github.event_name == 'pull_request' || inputs.platform == 'all' || inputs.platform == 'android' }}
     runs-on: ubuntu-latest
     timeout-minutes: 45
+    env:
+      E2E_LOCALE: ${{ inputs.locale || 'ja' }}
     strategy:
       fail-fast: false
       matrix:
@@ -95,6 +105,7 @@ jobs:
     runs-on: macos-26
     timeout-minutes: 120
     env:
+      E2E_LOCALE: ${{ inputs.locale || 'ja' }}
       MAESTRO_DRIVER_STARTUP_TIMEOUT: 240000
     strategy:
       fail-fast: false

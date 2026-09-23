@@ -2,10 +2,12 @@ appId: com.apple.Preferences
 tags:
   - ios
   - settings
+env:
+  EXPECTED_TEXT: "${E2E_LOCALE == 'en' ? 'Settings' : '設定'}"
 ---
 - launchApp
 - extendedWaitUntil:
-    visible: Settings
+    visible: ${EXPECTED_TEXT}
     timeout: 10000
-- assertVisible: Settings
+- assertVisible: ${EXPECTED_TEXT}
 - takeScreenshot: ios-settings

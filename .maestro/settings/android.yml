@@ -2,10 +2,12 @@ appId: com.android.settings
 tags:
   - android
   - settings
+env:
+  EXPECTED_TEXT: "${E2E_LOCALE == 'en' ? 'Search settings' : '設定を検索'}"
 ---
 - launchApp
 - extendedWaitUntil:
-    visible: Search settings
+    visible: ${EXPECTED_TEXT}
     timeout: 10000
-- assertVisible: Search settings
+- assertVisible: ${EXPECTED_TEXT}
 - takeScreenshot: android-settings
