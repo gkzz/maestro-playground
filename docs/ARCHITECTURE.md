@@ -4,11 +4,11 @@
 
 ローカルと CI で同じバージョンの `maestro-cli` を使用し、Maestro の実行とテスト環境のセットアップで同じ処理を利用できる構成にしています。
 
-Maestro の実行コマンドや引数は [mise/config.toml](../mise/config.toml) の task にまとめています。
+Maestro の実行コマンドや引数は [.config/mise/config.toml](../.config/mise/config.toml) の task にまとめています。
 
 ローカルでは Makefile を入口として mise task やセットアップスクリプトを呼び出し、CI では GitHub Actions から直接呼び出します。
 
-Android Emulator / iOS Simulator のセットアップ処理の実体は [mise/config.toml](../mise/config.toml) や [Makefile](../Makefile) には含めず、[utils/setup/](../utils/setup/) のスクリプトにまとめています。ローカルでは Makefile の target からそれらのスクリプトを呼び出します。
+Android Emulator / iOS Simulator のセットアップ処理の実体は [.config/mise/config.toml](../.config/mise/config.toml) や [Makefile](../Makefile) には含めず、[utils/setup/](../utils/setup/) のスクリプトにまとめています。ローカルでは Makefile の target からそれらのスクリプトを呼び出します。
 
 > [!NOTE]
 > iOS の実行は macOS 環境が必要です（Linux / Windows / WSL では非対応）。CI では GitHub Actions (macOS runner) を使用します。
@@ -19,7 +19,7 @@ flowchart TB
   ci[GitHub Actions]
 
   make[Makefile]
-  mise[mise/config.toml]
+  mise[.config/mise/config.toml]
   flows[.maestro flows]
   setup[utils/setup/android and utils/setup/ios scripts]
   local[local/android.env]
@@ -44,7 +44,7 @@ flowchart TB
 
 ## Using mise Tasks in Local and CI
 
-Maestro の実行コマンドや引数は [mise/config.toml](../mise/config.toml) の task にまとめています。
+Maestro の実行コマンドや引数は [.config/mise/config.toml](../.config/mise/config.toml) の task にまとめています。
 
 ローカルでは [Makefile](../Makefile) をラッパーとして使い、用途ごとの target から mise task を呼び出します。
 
@@ -52,7 +52,7 @@ CI では [e2e.yml](../.github/workflows/e2e.yml) から mise task を直接実�
 
 ```mermaid
 flowchart TB
-  mise[mise/config.toml<br/>Maestro tasks]
+  mise[.config/mise/config.toml<br/>Maestro tasks]
 
   subgraph Local
     developer[Developer]

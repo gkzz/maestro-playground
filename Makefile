@@ -1,5 +1,6 @@
 SHELL := /bin/bash
-MISE := MISE_CONFIG_FILE="$(CURDIR)/mise/config.toml" mise
+MISE_CONFIG := $(CURDIR)/.config/mise/config.toml
+MISE := MISE_CONFIG_FILE="$(MISE_CONFIG)" mise
 
 .PHONY: help install maestro-version check-syntax \
 	test-android test-android-settings test-android-wikipedia \
@@ -29,7 +30,7 @@ help:
 		'  setup-ios-simulator     Create and boot iOS Simulator'
 
 install:
-	$(MISE) trust --yes "$(CURDIR)/mise/config.toml"
+	$(MISE) trust --yes "$(MISE_CONFIG)"
 	$(MISE) install --locked
 
 maestro-version:
