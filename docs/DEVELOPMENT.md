@@ -14,7 +14,7 @@
 make install
 ```
 
-Maestro CLI のバージョンは [mise/config.toml](../mise/config.toml) で管理しています。
+Maestro CLI のバージョンは [.config/mise/config.toml](../.config/mise/config.toml) で管理しています。
 
 セットアップ用のスクリプトは [utils/setup/](../utils/setup/) にあります。
 
