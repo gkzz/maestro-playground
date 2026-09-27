@@ -2,10 +2,12 @@ appId: org.wikimedia.wikipedia
 tags:
   - ios
   - wikipedia
+env:
+  EXPECTED_TEXT: "${E2E_LOCALE == 'en' ? 'The free encyclopedia' : 'フリー百科事典'}"
 ---
 - launchApp
 - extendedWaitUntil:
-    visible: The free encyclopedia
+    visible: ${EXPECTED_TEXT}
     timeout: 10000
-- assertVisible: The free encyclopedia
+- assertVisible: ${EXPECTED_TEXT}
 - takeScreenshot: ios-wikipedia
