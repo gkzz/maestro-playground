@@ -2,14 +2,14 @@
 
 このリポジトリでは、Maestro を使った Android / iOS の E2E テストを試しています。
 
-Maestro CLI のバージョンとテストの実行方法は [mise/config.toml](../mise/config.toml) で管理し、ローカルと CI から同じコマンドを実行できるようにしています。
+Maestro CLI のバージョンとテストの実行方法は [.config/mise/config.toml](../.config/mise/config.toml) で管理し、ローカルと CI から同じコマンドを実行できるようにしています。
 
 ## Overview
 
 主な構成は次のとおりです。
 
 * `.maestro/`: Maestro のテスト
-* [mise/config.toml](../mise/config.toml): Maestro CLI のバージョンとテスト実行用の task
+* [.config/mise/config.toml](../.config/mise/config.toml): Maestro CLI のバージョンとテスト実行用の task
 * [Makefile](../Makefile): ローカルでよく使うコマンドとセットアップスクリプトの入口
 * `utils/setup/android/`, `utils/setup/ios/`: Android Emulator / iOS Simulator のセットアップ
 * `e2e/`: テストで使用するアプリのダウンロードやインストール
@@ -28,7 +28,7 @@ Maestro CLI のバージョンとテストの実行方法は [mise/config.toml](
 
 ### mise本体のバージョン
 
-`mise/config.toml` の `min_version` は、このプロジェクトの設定を利用するために必要なmiseの最低バージョンを表します。
+`.config/mise/config.toml` の `min_version` は、このプロジェクトの設定を利用するために必要なmiseの最低バージョンを表します。
 
 ローカル環境では、`min_version` 以上のmiseが利用可能であることを前提とします。mise本体のインストール方法やバージョン管理方法は、このリポジトリでは規定しません。
 

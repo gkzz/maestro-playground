@@ -39,15 +39,17 @@ Maestro Flow から OS 標準の「設定」アプリと、追加のテスト対
 │       │   └── android-sdk.sh
 │       └── ios
 │           └── ios-simulator.sh
+├── .config
+│   └── mise
+│       └── config.toml
 ├── Makefile
 ├── README.md
-├── mise/config.toml
 └── renovate.json5
 ```
 
 ## Getting started
 
-Makefile 経由で [mise/config.toml](mise/config.toml) に定義された Maestro CLI をインストールします。
+Makefile 経由で [.config/mise/config.toml](.config/mise/config.toml) に定義された Maestro CLI をインストールします。
 
 ```sh
 make install
@@ -119,7 +121,7 @@ make test-android
 make test-ios
 ```
 
-[mise/config.toml](mise/config.toml) で管理している Maestro CLI では、主な artifact は次のファイルとディレクトリに出力されます。
+[.config/mise/config.toml](.config/mise/config.toml) で管理している Maestro CLI では、主な artifact は次のファイルとディレクトリに出力されます。
 
 - `maestro.log`: Maestro 実行ログ
 - `manifest.json`: artifact 一覧
@@ -127,7 +129,7 @@ make test-ios
 - `takeScreenshot/`: Flow の `takeScreenshot` で保存したキャプチャ
 - `screenshots/`: 失敗ステップなど Maestro が自動保存したキャプチャ
 
-レポートが必要な場合は、[mise/config.toml](mise/config.toml) の task に `--format` と `--output` を追加します。
+レポートが必要な場合は、[.config/mise/config.toml](.config/mise/config.toml) の task に `--format` と `--output` を追加します。
 
 ```sh
 make test-android
