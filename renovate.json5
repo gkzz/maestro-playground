@@ -4,11 +4,11 @@
   // 共通の Renovate 運用ポリシーは gkzz/renovate-config の default preset に集約する。
   extends: ["github>gkzz/renovate-config"],
 
-  // 固定した検証環境の lockfile は月1回、毎月1日にメンテナンスする。
+  // 固定した検証環境の lockfile は月1回、毎月最初の月曜日にメンテナンスする。
   // PR 作成には共有方針どおり Dependency Dashboard での承認が必要。
   lockFileMaintenance: {
     enabled: true,
-    schedule: ["on the first day of the month"],
+    schedule: ["* * 1-7 * 1"],
   },
 
   packageRules: [
