@@ -1,10 +1,20 @@
 min_version = "2026.8.15"
 
 [settings]
+# 公開直後の不具合や不正なリリースを取り込むリスクを減らすため、14日待つ。
+# latest やメジャー番号などから新しいバージョンを選ぶ際に適用する。
+# 固定バージョンと既存 lockfile のバージョンは除外しない。
+# リリース日時を取得できないバージョンには待機期間を適用できない。
+# https://mise.jdx.dev/configuration/settings.html#minimum-release-age
+minimum_release_age = "14d"
 lockfile = true
 
 [tools]
-maestro = "cli-2.8.0"
+# Renovate のセーフモードではプロジェクトの [settings] が無視されるため、
+# 各ツールにも同じ待機期間を指定する。ツールを追加するときも指定すること。
+# 通常のバージョン更新は共有 Renovate 設定の minimumReleaseAge でも14日待つ。
+# この指定でも固定バージョンや既存 lockfile を再検査するわけではない。
+maestro = { version = "cli-2.8.0", minimum_release_age = "14d" }
 
 [tasks."maestro:version"]
 description = "Print the mise-managed Maestro CLI version."
