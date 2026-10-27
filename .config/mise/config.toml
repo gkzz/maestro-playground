@@ -14,7 +14,7 @@ lockfile = true
 # Renovate のセーフモードではプロジェクトの [settings] が無視されるため、
 # 各ツールにも同じ待機期間を指定する。ツールを追加するときも指定すること。
 # この指定でも固定バージョンや既存 lockfile を再検査するわけではない。
-maestro = { version = "cli-2.8.0", minimum_release_age = "14d" }
+maestro = { version = "cli-2.11.0", minimum_release_age = "14d" }
 
 [tasks."maestro:version"]
 description = "Print the mise-managed Maestro CLI version."
