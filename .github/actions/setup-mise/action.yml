@@ -30,4 +30,4 @@ runs:
       run: |
         set -euo pipefail
         mise trust --yes "$MISE_CONFIG_FILE"
-        mise install --locked
+        mise install --locked maestro

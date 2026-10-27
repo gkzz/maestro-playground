@@ -50,6 +50,7 @@ Maestro Flow から OS 標準の「設定」アプリと、追加のテスト対
 ## Getting started
 
 Makefile 経由で [.config/mise/config.toml](.config/mise/config.toml) に定義された Maestro CLI をインストールします。
+インストール対象を `maestro` に限定し、リポジトリの `mise.lock` に従ってインストールします。ホームの mise 設定による lockfile の警告が出る場合がありますが、他のツールはインストールしません。
 
 ```sh
 make install

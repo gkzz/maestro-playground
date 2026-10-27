@@ -31,7 +31,8 @@ help:
 
 install:
 	$(MISE) trust --yes "$(MISE_CONFIG)"
-	$(MISE) install --locked
+	# Install only the project tool, leaving personal global tools untouched.
+	$(MISE) install --locked maestro
 
 maestro-version:
 	$(MISE) run maestro:version

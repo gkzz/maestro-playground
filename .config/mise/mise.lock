@@ -9,42 +9,35 @@ specifiers = ["cli-2.11.0"]
 
 [tools.maestro."platforms.linux-arm64"]
 checksum = "sha256:5384593cb4e7a106489e75a821d157dd43f4e438df6bc308b72e82c685e1283a"
-checksum_source = "mise-versions"
 url = "https://github.com/mobile-dev-inc/Maestro/releases/download/cli-2.11.0/maestro.zip"
 url_api = "https://api.github.com/repos/mobile-dev-inc/Maestro/releases/assets/598310672"
 
 [tools.maestro."platforms.linux-arm64-musl"]
 checksum = "sha256:5384593cb4e7a106489e75a821d157dd43f4e438df6bc308b72e82c685e1283a"
-checksum_source = "mise-versions"
 url = "https://github.com/mobile-dev-inc/Maestro/releases/download/cli-2.11.0/maestro.zip"
 url_api = "https://api.github.com/repos/mobile-dev-inc/Maestro/releases/assets/598310672"
 
 [tools.maestro."platforms.linux-x64"]
 checksum = "sha256:5384593cb4e7a106489e75a821d157dd43f4e438df6bc308b72e82c685e1283a"
-checksum_source = "mise-versions"
 url = "https://github.com/mobile-dev-inc/Maestro/releases/download/cli-2.11.0/maestro.zip"
 url_api = "https://api.github.com/repos/mobile-dev-inc/Maestro/releases/assets/598310672"
 
 [tools.maestro."platforms.linux-x64-musl"]
 checksum = "sha256:5384593cb4e7a106489e75a821d157dd43f4e438df6bc308b72e82c685e1283a"
-checksum_source = "mise-versions"
 url = "https://github.com/mobile-dev-inc/Maestro/releases/download/cli-2.11.0/maestro.zip"
 url_api = "https://api.github.com/repos/mobile-dev-inc/Maestro/releases/assets/598310672"
 
 [tools.maestro."platforms.macos-arm64"]
 checksum = "sha256:5384593cb4e7a106489e75a821d157dd43f4e438df6bc308b72e82c685e1283a"
-checksum_source = "mise-versions"
 url = "https://github.com/mobile-dev-inc/Maestro/releases/download/cli-2.11.0/maestro.zip"
 url_api = "https://api.github.com/repos/mobile-dev-inc/Maestro/releases/assets/598310672"
 
 [tools.maestro."platforms.macos-x64"]
 checksum = "sha256:5384593cb4e7a106489e75a821d157dd43f4e438df6bc308b72e82c685e1283a"
-checksum_source = "mise-versions"
 url = "https://github.com/mobile-dev-inc/Maestro/releases/download/cli-2.11.0/maestro.zip"
 url_api = "https://api.github.com/repos/mobile-dev-inc/Maestro/releases/assets/598310672"
 
 [tools.maestro."platforms.windows-x64"]
 checksum = "sha256:5384593cb4e7a106489e75a821d157dd43f4e438df6bc308b72e82c685e1283a"
-checksum_source = "mise-versions"
 url = "https://github.com/mobile-dev-inc/Maestro/releases/download/cli-2.11.0/maestro.zip"
 url_api = "https://api.github.com/repos/mobile-dev-inc/Maestro/releases/assets/598310672"
