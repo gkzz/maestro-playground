@@ -1,0 +1,14 @@
+# The setup script opens Gboard's settings before this subflow runs.
+appId: com.google.android.inputmethod.latin
+---
+- takeScreenshot: android-gboard-settings
+- tapOn: 'Languages|言語'
+- tapOn: 'ADD KEYBOARD|Add keyboard|キーボードを追加'
+- scrollUntilVisible:
+    element:
+      text: 'Japanese|日本語'
+    direction: DOWN
+- tapOn: 'Japanese|日本語'
+- tapOn: 'QWERTY'
+- tapOn: 'DONE|Done|完了'
+- takeScreenshot: android-gboard-japanese-configured

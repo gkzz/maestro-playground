@@ -1,0 +1,60 @@
+appId: org.wikipedia
+tags:
+  - android
+  - keyboard
+---
+- runFlow: setup/android.yml
+- launchApp:
+    clearState: true
+- tapOn:
+    text: 'SKIP|Skip|スキップ'
+    optional: true
+- tapOn:
+    id: 'org.wikipedia:id/search_container'
+- tapOn:
+    id: 'org.wikipedia:id/search_src_text'
+- takeScreenshot: android-keyboard-open
+# A fresh Gboard profile starts in English. Switch to the Japanese QWERTY layout.
+- runFlow:
+    when:
+      notVisible: '日本語.*|Japanese.*'
+    commands:
+      - longPressOn:
+          text: 'English.*|英語.*|Space|スペース'
+      - tapOn: '日本語.*|Japanese.*'
+- assertVisible: '日本語.*|Japanese.*'
+- takeScreenshot: android-japanese-keyboard
+# Type toukyou using actual software keys; never inject text.
+- tapOn:
+    text: "t"
+    retryTapIfNoChange: false
+- tapOn:
+    text: "o"
+    retryTapIfNoChange: false
+- tapOn:
+    text: "u"
+    retryTapIfNoChange: false
+- tapOn:
+    text: "k"
+    retryTapIfNoChange: false
+- tapOn:
+    text: "y"
+    retryTapIfNoChange: false
+- tapOn:
+    text: "o"
+    retryTapIfNoChange: false
+- tapOn:
+    text: "u"
+    retryTapIfNoChange: false
+- assertVisible:
+    id: "org.wikipedia:id/search_src_text"
+    text: "とうきょう"
+- takeScreenshot: android-hiragana
+- tapOn:
+    text: "東京"
+    index: 0
+    retryTapIfNoChange: false
+- assertVisible:
+    id: "org.wikipedia:id/search_src_text"
+    text: "東京"
+- takeScreenshot: android-kanji

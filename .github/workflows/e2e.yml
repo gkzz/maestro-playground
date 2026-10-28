@@ -42,6 +42,8 @@ jobs:
             requires_apps: false
           - flow: wikipedia
             requires_apps: true
+          - flow: keyboard
+            requires_apps: true
 
     steps:
       - name: Enable KVM group perms
@@ -63,7 +65,7 @@ jobs:
           api-level: 32
           arch: x86_64
           profile: pixel_7
-          target: google_apis
+          target: ${{ matrix.flow == 'keyboard' && 'google_apis_playstore' || 'google_apis' }}
           emulator-boot-timeout: 1200
           emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -accel on -no-metrics -camera-back emulated
 
@@ -81,11 +83,25 @@ jobs:
           e2e/download_apps android
           e2e/install_apps android
 
+      - name: Prepare Japanese Gboard
+        if: ${{ matrix.flow == 'keyboard' }}
+        run: utils/setup/android/japanese-keyboard.sh
+
       - name: Run Maestro on Android
         env:
           E2E_FLOW: ${{ matrix.flow }}
         run: |
           mise run maestro:test-android
+
+      - name: Collect Android keyboard diagnostics
+        if: ${{ always() && matrix.flow == 'keyboard' }}
+        run: |
+          output_dir=artifacts/maestro/android/keyboard
+          mkdir -p "$output_dir"
+          adb -s "${ANDROID_EMULATOR_SERIAL:-emulator-5554}" shell dumpsys input_method > "$output_dir/input-method.txt" || true
+          adb -s "${ANDROID_EMULATOR_SERIAL:-emulator-5554}" exec-out screencap -p > "$output_dir/keyboard-final.png" || true
+          adb -s "${ANDROID_EMULATOR_SERIAL:-emulator-5554}" shell uiautomator dump /sdcard/keyboard.xml || true
+          adb -s "${ANDROID_EMULATOR_SERIAL:-emulator-5554}" pull /sdcard/keyboard.xml "$output_dir/keyboard.xml" || true
 
       - name: Shutdown Android Emulator
         if: always()
@@ -115,6 +131,8 @@ jobs:
             requires_apps: false
           - flow: wikipedia
             requires_apps: true
+          - flow: keyboard
+            requires_apps: true
 
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -125,6 +143,8 @@ jobs:
           install: "true"
 
       - name: Setup iOS Simulator
+        env:
+          E2E_JAPANESE_KEYBOARD: ${{ matrix.flow == 'keyboard' && '1' || '0' }}
         uses: ./.github/actions/setup-ios-simulator
         with:
           runtime-name: iOS 26.2

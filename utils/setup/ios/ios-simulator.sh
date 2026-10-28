@@ -32,6 +32,16 @@ xcrun simctl bootstatus "$device_id" -b
 xcrun simctl spawn "$device_id" defaults write NSGlobalDomain AppleLanguages -array "$apple_language"
 xcrun simctl spawn "$device_id" defaults write NSGlobalDomain AppleLocale -string "$apple_locale"
 
+if [[ "${E2E_JAPANESE_KEYBOARD:-0}" == "1" ]]; then
+  # Only Japanese Romaji, so no language-switch key is needed in the flow.
+  defaults write com.apple.iphonesimulator ConnectHardwareKeyboard -bool false
+  xcrun simctl spawn "$device_id" defaults write NSGlobalDomain AppleKeyboards -array 'ja_JP@sw=Romaji;hw=US'
+  # Reload the keyboard preferences before launching Wikipedia.
+  xcrun simctl shutdown "$device_id"
+  xcrun simctl boot "$device_id"
+  xcrun simctl bootstatus "$device_id" -b
+fi
+
 if [[ -n "${GITHUB_ENV:-}" ]]; then
   echo "SIMULATOR_UDID=$device_id" >> "$GITHUB_ENV"
 fi

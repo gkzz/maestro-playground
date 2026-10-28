@@ -17,9 +17,11 @@ help:
 		'  test-android            Run all Android flows' \
 		'  test-android-settings   Run Android settings flow' \
 		'  test-android-wikipedia  Run Android wikipedia flow' \
+		'  test-android-keyboard   Run Japanese Gboard spike (requires setup)' \
 		'  test-ios                Run all iOS flows' \
 		'  test-ios-settings       Run iOS settings flow' \
 		'  test-ios-wikipedia      Run iOS wikipedia flow' \
+		'  test-ios-keyboard       Run Japanese Romaji spike (requires setup)' \
 		'  download-android-apps   Download Android test apps' \
 		'  download-ios-apps       Download iOS test apps' \
 		'  install-android-apps    Install Android test apps' \
@@ -81,3 +83,12 @@ boot-android-emulator:
 
 setup-ios-simulator:
 	"./utils/setup/ios/ios-simulator.sh"
+
+.PHONY: test-android-keyboard test-ios-keyboard
+
+# Prepare the Japanese IME first; see docs/KEYBOARD.md.
+test-android-keyboard:
+	E2E_FLOW=keyboard $(MISE) run maestro:test-android
+
+test-ios-keyboard:
+	E2E_FLOW=keyboard $(MISE) run maestro:test-ios

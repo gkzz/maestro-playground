@@ -1,0 +1,49 @@
+appId: org.wikimedia.wikipedia
+tags:
+  - ios
+  - keyboard
+---
+- launchApp:
+    clearState: true
+- tapOn:
+    text: 'Skip|スキップ'
+    optional: true
+- tapOn:
+    text: 'Search Wikipedia|Wikipediaを検索|ウィキペディアを検索'
+- takeScreenshot: ios-keyboard-open
+- assertVisible: '空白|次候補'
+- takeScreenshot: ios-japanese-keyboard
+# Type toukyou using actual software keys; never inject text.
+- tapOn:
+    text: "t"
+    retryTapIfNoChange: false
+- tapOn:
+    text: "o"
+    retryTapIfNoChange: false
+- tapOn:
+    text: "u"
+    retryTapIfNoChange: false
+- tapOn:
+    text: "k"
+    retryTapIfNoChange: false
+- tapOn:
+    text: "y"
+    retryTapIfNoChange: false
+- tapOn:
+    text: "o"
+    retryTapIfNoChange: false
+- tapOn:
+    text: "u"
+    retryTapIfNoChange: false
+- assertVisible:
+    focused: true
+    text: "とうきょう"
+- takeScreenshot: ios-hiragana
+- tapOn:
+    text: "東京"
+    index: 0
+    retryTapIfNoChange: false
+- assertVisible:
+    focused: true
+    text: "東京"
+- takeScreenshot: ios-kanji

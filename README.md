@@ -135,3 +135,7 @@ make test-ios
 ```sh
 make test-android
 ```
+
+## Japanese keyboard spike
+
+Experimental software-keyboard flows and CI setup: [docs/KEYBOARD.md](docs/KEYBOARD.md).
