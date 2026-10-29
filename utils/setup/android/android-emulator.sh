@@ -33,6 +33,7 @@ fi
 echo "Available AVDs:"
 "$emulator_cmd" -list-avds
 echo "Starting Android Emulator ${device_serial} from AVD ${avd_name}."
+"$adb_cmd" start-server
 # shellcheck disable=SC2086
 nohup "$emulator_cmd" @"$avd_name" -port "$emulator_port" $emulator_options > "$emulator_log" 2>&1 &
 emulator_pid="$!"
@@ -70,11 +71,21 @@ until [[ "$("$adb_cmd" -s "$device_serial" shell getprop sys.boot_completed 2>/d
 done
 
 echo "Restarting adbd as root to apply locale ${device_locale}."
-if ! "$adb_cmd" -s "$device_serial" root; then
-  echo "Android Emulator does not allow adbd to run as root." >&2
-  tail -n 200 "$emulator_log" >&2 || true
-  exit 1
-fi
+until "$adb_cmd" -s "$device_serial" root; do
+  if ! kill -0 "$emulator_pid" 2>/dev/null; then
+    echo "Android Emulator process exited while requesting root adbd." >&2
+    tail -n 200 "$emulator_log" >&2 || true
+    exit 1
+  fi
+  if (( SECONDS >= deadline )); then
+    echo "Android Emulator did not accept the root adbd request within ${emulator_boot_timeout} seconds." >&2
+    "$adb_cmd" devices -l >&2 || true
+    tail -n 200 "$emulator_log" >&2 || true
+    exit 1
+  fi
+  echo "Root adbd request failed; retrying in 2 seconds." >&2
+  sleep 2
+done
 
 until [[ "$("$adb_cmd" -s "$device_serial" shell id -u 2>/dev/null | tr -d '\r')" == "0" ]]; do
   if ! kill -0 "$emulator_pid" 2>/dev/null; then

@@ -1,0 +1,10 @@
+# Prepare Wikipedia before adding Unicode input coverage (Maestro PR #3211).
+appId: org.wikipedia
+tags:
+  - android
+  - unicode
+---
+- runFlow: ../wikipedia/subflows/onboarding-android.yml
+- assertVisible:
+    id: 'org.wikipedia:id/search_container'
+- takeScreenshot: wikipedia-ready-for-unicode

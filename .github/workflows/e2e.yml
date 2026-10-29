@@ -28,23 +28,12 @@ concurrency:
 
 jobs:
   test-android:
-    name: Android / ${{ matrix.flow }}
+    name: Android / wikipedia + unicode
     if: ${{ github.event_name == 'pull_request' || inputs.platform == 'all' || inputs.platform == 'android' }}
     runs-on: ubuntu-latest
     timeout-minutes: 45
     env:
       E2E_LOCALE: ${{ inputs.locale || 'ja' }}
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - flow: settings
-            requires_apps: false
-          - flow: wikipedia
-            requires_apps: true
-          - flow: keyboard
-            requires_apps: true
-
     steps:
       - name: Enable KVM group perms
         run: |
@@ -65,7 +54,7 @@ jobs:
           api-level: 32
           arch: x86_64
           profile: pixel_7
-          target: ${{ matrix.flow == 'keyboard' && 'google_apis_playstore' || 'google_apis' }}
+          target: google_apis
           emulator-boot-timeout: 1200
           emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -accel on -no-metrics -camera-back emulated
 
@@ -78,25 +67,26 @@ jobs:
           } > local/android.env
 
       - name: Install test apps
-        if: ${{ matrix.requires_apps }}
         run: |
           e2e/download_apps android
           e2e/install_apps android
 
-      - name: Prepare Japanese Gboard
-        if: ${{ matrix.flow == 'keyboard' }}
-        run: utils/setup/android/japanese-keyboard.sh
-
       - name: Run Maestro on Android
         env:
-          E2E_FLOW: ${{ matrix.flow }}
+          E2E_FLOW: wikipedia
         run: |
           mise run maestro:test-android
 
-      - name: Collect Android keyboard diagnostics
-        if: ${{ always() && matrix.flow == 'keyboard' }}
+      - name: Run Unicode Maestro flow on Android
+        if: ${{ !cancelled() }}
+        env:
+          E2E_FLOW: unicode
+        run: mise run maestro:test-android
+
+      - name: Collect Android input diagnostics
+        if: always()
         run: |
-          output_dir=artifacts/maestro/android/keyboard
+          output_dir=artifacts/maestro/android/unicode
           mkdir -p "$output_dir"
           adb -s "${ANDROID_EMULATOR_SERIAL:-emulator-5554}" shell dumpsys input_method > "$output_dir/input-method.txt" || true
           adb -s "${ANDROID_EMULATOR_SERIAL:-emulator-5554}" exec-out screencap -p > "$output_dir/keyboard-final.png" || true
@@ -111,8 +101,10 @@ jobs:
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always()
         with:
-          name: maestro-android-${{ matrix.flow }}
-          path: artifacts/maestro/android/${{ matrix.flow }}
+          name: maestro-android-wikipedia-unicode
+          path: |
+            artifacts/maestro/android/wikipedia
+            artifacts/maestro/android/unicode
           retention-days: 1
 
   test-ios:

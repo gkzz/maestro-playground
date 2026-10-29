@@ -28,7 +28,7 @@ done
 '''
 
 [tasks."maestro:test-android"]
-description = "Run Android Maestro flows. Set E2E_FLOW=settings, wikipedia or keyboard to run one flow."
+description = "Run Android Maestro flows. Set E2E_FLOW=settings, wikipedia, keyboard or unicode to run one flow."
 run = '''
 set -eu
 cd "${GITHUB_WORKSPACE:-.}"
@@ -39,8 +39,8 @@ set -- --platform android
 if [ -n "${MAESTRO_HOST:-}" ]; then set -- "$@" --host "$MAESTRO_HOST"; fi
 case "${E2E_FLOW:-}" in
   "") output_dir="artifacts/maestro/android"; flow_args=".maestro/settings/android.yml .maestro/wikipedia/android.yml" ;;
-  settings|wikipedia|keyboard) output_dir="artifacts/maestro/android/$E2E_FLOW"; flow_args=".maestro/$E2E_FLOW/android.yml" ;;
-  *) echo "E2E_FLOW must be one of: settings, wikipedia, keyboard" >&2; exit 1 ;;
+  settings|wikipedia|keyboard|unicode) output_dir="artifacts/maestro/android/$E2E_FLOW"; flow_args=".maestro/$E2E_FLOW/android.yml" ;;
+  *) echo "E2E_FLOW must be one of: settings, wikipedia, keyboard, unicode" >&2; exit 1 ;;
 esac
 maestro --version
 maestro "$@" test -e E2E_LOCALE="$e2e_locale" $flow_args --test-output-dir "$output_dir" --debug-output "$output_dir" --flatten-debug-output

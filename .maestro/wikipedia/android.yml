@@ -2,12 +2,8 @@ appId: org.wikipedia
 tags:
   - android
   - wikipedia
-env:
-  EXPECTED_TEXT: "${E2E_LOCALE == 'en' ? \"All the world's knowledge\" : '(?s).*百科事典.*'}"
 ---
-- launchApp
-- extendedWaitUntil:
-    visible: ${EXPECTED_TEXT}
-    timeout: 10000
-- assertVisible: ${EXPECTED_TEXT}
+- runFlow: subflows/onboarding-android.yml
+- assertVisible:
+    id: 'org.wikipedia:id/search_container'
 - takeScreenshot: android-wikipedia

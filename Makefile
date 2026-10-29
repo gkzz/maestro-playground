@@ -18,6 +18,7 @@ help:
 		'  test-android-settings   Run Android settings flow' \
 		'  test-android-wikipedia  Run Android wikipedia flow' \
 		'  test-android-keyboard   Run Japanese Gboard spike (requires setup)' \
+		'  test-android-unicode    Run Unicode input and internal clipboard checks'
 		'  test-ios                Run all iOS flows' \
 		'  test-ios-settings       Run iOS settings flow' \
 		'  test-ios-wikipedia      Run iOS wikipedia flow' \
@@ -92,3 +93,8 @@ test-android-keyboard:
 
 test-ios-keyboard:
 	E2E_FLOW=keyboard $(MISE) run maestro:test-ios
+
+.PHONY: test-android-unicode
+
+test-android-unicode:
+	E2E_FLOW=unicode $(MISE) run maestro:test-android

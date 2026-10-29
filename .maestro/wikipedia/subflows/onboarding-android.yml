@@ -1,0 +1,23 @@
+# Based on mobile-dev-inc/Maestro e2e/workspaces/wikipedia/subflows/onboarding-android.yaml.
+appId: org.wikipedia
+---
+- launchApp:
+    clearState: true
+- assertVisible: "${E2E_LOCALE == 'en' ? \"All the world's knowledge\" : '世界中の知識'}"
+# This APK's next arrow has no resource ID or accessibility label.
+# Stop as soon as the home screen appears; cap attempts to catch UI changes.
+- repeat:
+    while:
+      notVisible:
+        id: 'org.wikipedia:id/search_container'
+    times: 4
+    commands:
+      - tapOn:
+          point: "94%,96%"
+      - tapOn:
+          text: 'Skip|スキップ'
+          optional: true
+- extendedWaitUntil:
+    visible:
+      id: 'org.wikipedia:id/search_container'
+    timeout: 10000

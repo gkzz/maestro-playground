@@ -1,18 +1,17 @@
-appId: org.wikipedia
+appId: com.android.settings
 tags:
   - android
   - keyboard
 ---
 - runFlow: setup/android.yml
-- launchApp:
-    clearState: true
+# Settings search is provided by Settings Intelligence on the API 32 image.
+- launchApp
+- extendedWaitUntil:
+    visible: 'Search settings|設定を検索'
+    timeout: 10000
+- tapOn: 'Search settings|設定を検索'
 - tapOn:
-    text: 'SKIP|Skip|スキップ'
-    optional: true
-- tapOn:
-    id: 'org.wikipedia:id/search_container'
-- tapOn:
-    id: 'org.wikipedia:id/search_src_text'
+    id: 'com.google.android.settings.intelligence:id/search_src_text'
 - takeScreenshot: android-keyboard-open
 # A fresh Gboard profile starts in English. Switch to the Japanese QWERTY layout.
 - runFlow:
@@ -47,7 +46,7 @@ tags:
     text: "u"
     retryTapIfNoChange: false
 - assertVisible:
-    id: "org.wikipedia:id/search_src_text"
+    id: "com.google.android.settings.intelligence:id/search_src_text"
     text: "とうきょう"
 - takeScreenshot: android-hiragana
 - tapOn:
@@ -55,6 +54,6 @@ tags:
     index: 0
     retryTapIfNoChange: false
 - assertVisible:
-    id: "org.wikipedia:id/search_src_text"
+    id: "com.google.android.settings.intelligence:id/search_src_text"
     text: "東京"
 - takeScreenshot: android-kanji
