@@ -1,5 +1,8 @@
 # maestro-playground
 
+[![Lint](https://github.com/gkzz/maestro-playground/actions/workflows/lint.yml/badge.svg)](https://github.com/gkzz/maestro-playground/actions/workflows/lint.yml)
+[![E2E](https://github.com/gkzz/maestro-playground/actions/workflows/e2e.yml/badge.svg)](https://github.com/gkzz/maestro-playground/actions/workflows/e2e.yml)
+
 Maestro で iOS Simulator / Android Emulator を操作するための最小サンプルです。
 
 Maestro Flow から OS 標準の「設定」アプリと、追加のテスト対象アプリを起動する検証用リポジトリです。追加アプリは [mobile-dev-inc/Maestro](https://github.com/mobile-dev-inc/Maestro/tree/main/e2e) の E2E と同じ配布済みアプリを [e2e/manifest.txt](e2e/manifest.txt) から取得します。
