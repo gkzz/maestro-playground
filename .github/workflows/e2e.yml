@@ -68,7 +68,9 @@ jobs:
 
       - name: Setup Android SDK
         env:
-          API_LEVEL: 32
+          API_LEVEL: 36
+          # Only unicode builds the Flutter demo app.
+          NDK_VERSION: ${{ matrix.flow == 'unicode' && '28.2.13676358' || '' }}
           ARCH: x86_64
           TARGET: google_apis
         run: make setup-android-sdk
@@ -85,7 +87,7 @@ jobs:
       - name: Setup Android Emulator
         uses: ./.github/actions/setup-android-emulator
         with:
-          api-level: 32
+          api-level: 36
           arch: x86_64
           profile: pixel_7
           target: google_apis

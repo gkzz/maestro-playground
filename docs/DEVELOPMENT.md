@@ -32,10 +32,12 @@ Android / iOS のセットアップの図は [ARCHITECTURE.md](./ARCHITECTURE.md
 
 ローカルではスクリプトを直接実行せず、[Makefile](../Makefile) の target 経由で呼び出します。
 
+Android command-line tools（`cmdline-tools/latest/bin`）を事前に配置し、同じシェルで `ANDROID_HOME` と `ANDROID_SDK_ROOT` を同じ SDK ディレクトリに設定してください。SDK の選択順は `ANDROID_SDK_ROOT`、`ANDROID_HOME`、`/usr/local/lib/android/sdk` です。SDK ステップは Platform 36 と `google_apis;x86_64` の system image をインストールします。ローカルでは子プロセスの環境変数は親シェルに反映されないため、SDK の `platform-tools` と `emulator` も `PATH` に追加してください。
+
 ```
-API_LEVEL=32 ARCH=x86_64 TARGET=google_apis make setup-android-sdk
-API_LEVEL=32 ARCH=x86_64 TARGET=google_apis PROFILE=pixel_7 make setup-android-avd
-API_LEVEL=32 EMULATOR_PORT=5554 make boot-android-emulator
+API_LEVEL=36 ARCH=x86_64 TARGET=google_apis make setup-android-sdk
+API_LEVEL=36 ARCH=x86_64 TARGET=google_apis PROFILE=pixel_7 make setup-android-avd
+API_LEVEL=36 EMULATOR_PORT=5554 make boot-android-emulator
 ```
 
 ## Android
@@ -69,6 +71,19 @@ Wikipedia など追加のアプリを使用するテストでは、先にアプ�
 make download-android-apps
 make install-android-apps
 make test-android-wikipedia
+```
+
+### Flutter Unicode flow
+
+Flutter 3.38.5 と Java 17.0.21+9 を用意します。SDK セットアップ時に `NDK_VERSION` を指定すると、ビルド用 NDK も同時にインストールします。`settings` / `wikipedia` では指定不要です。
+
+```sh
+API_LEVEL=36 ARCH=x86_64 TARGET=google_apis NDK_VERSION=28.2.13676358 make setup-android-sdk
+make build-demo-app
+API_LEVEL=36 ARCH=x86_64 TARGET=google_apis PROFILE=pixel_7 make setup-android-avd
+API_LEVEL=36 EMULATOR_PORT=5554 make boot-android-emulator
+make install-android-apps
+make test-android-unicode
 ```
 
 ## iOS
@@ -106,6 +121,6 @@ Pull Request では `Lint` と `E2E` を実行します。
 
 `Lint` では workflow、shell script、Maestro flow などの構文を確認します。
 
-`E2E` では Android / iOS の各 flow を実行します。
+PR の `E2E` では Android の `settings` / `wikipedia` / `unicode` を実行します。`workflow_dispatch` では `platform` に応じて Android / iOS を選択し、各プラットフォームの同じ3フローを実行します。
 
 CI の構成については [ARCHITECTURE.md](./ARCHITECTURE.md) の `CI` を参照してください。
