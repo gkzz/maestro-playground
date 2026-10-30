@@ -1,0 +1,18 @@
+appId: com.example.example
+tags:
+  - ios
+  - unicode
+---
+- launchApp:
+    clearState: true
+- tapOn: Input/Keyboard
+- tapOn:
+    id: textInput
+- inputText: 東京
+- assertVisible:
+    id: textInput
+    text: ^東京$
+- copyTextFrom:
+    id: textInput
+- assertTrue: ${maestro.copiedText === "東京"}
+- takeScreenshot: ios-unicode-input

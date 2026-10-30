@@ -28,7 +28,7 @@ done
 '''
 
 [tasks."maestro:test-android"]
-description = "Run Android Maestro flows. Set E2E_FLOW=settings or wikipedia to run one flow."
+description = "Run Android Maestro flows. Set E2E_FLOW=settings, wikipedia or unicode to run one flow."
 run = '''
 set -eu
 cd "${GITHUB_WORKSPACE:-.}"
@@ -39,15 +39,15 @@ set -- --platform android
 if [ -n "${MAESTRO_HOST:-}" ]; then set -- "$@" --host "$MAESTRO_HOST"; fi
 case "${E2E_FLOW:-}" in
   "") output_dir="artifacts/maestro/android"; flow_args=".maestro/settings/android.yml .maestro/wikipedia/android.yml" ;;
-  settings|wikipedia) output_dir="artifacts/maestro/android/$E2E_FLOW"; flow_args=".maestro/$E2E_FLOW/android.yml" ;;
-  *) echo "E2E_FLOW must be one of: settings, wikipedia" >&2; exit 1 ;;
+  settings|wikipedia|unicode) output_dir="artifacts/maestro/android/$E2E_FLOW"; flow_args=".maestro/$E2E_FLOW/android.yml" ;;
+  *) echo "E2E_FLOW must be one of: settings, wikipedia, unicode" >&2; exit 1 ;;
 esac
 maestro --version
 maestro "$@" test -e E2E_LOCALE="$e2e_locale" $flow_args --test-output-dir "$output_dir" --debug-output "$output_dir" --flatten-debug-output
 '''
 
 [tasks."maestro:test-ios"]
-description = "Run iOS Maestro flows. Set E2E_FLOW=settings or wikipedia to run one flow."
+description = "Run iOS Maestro flows. Set E2E_FLOW=settings, wikipedia or unicode to run one flow."
 run = '''
 set -eu
 cd "${GITHUB_WORKSPACE:-.}"
@@ -55,8 +55,8 @@ e2e_locale="${E2E_LOCALE:-ja}"
 case "$e2e_locale" in en|ja) ;; *) echo "E2E_LOCALE must be one of: en, ja" >&2; exit 1 ;; esac
 case "${E2E_FLOW:-}" in
   "") output_dir="artifacts/maestro/ios"; flow_args=".maestro/settings/ios.yml .maestro/wikipedia/ios.yml" ;;
-  settings|wikipedia) output_dir="artifacts/maestro/ios/$E2E_FLOW"; flow_args=".maestro/$E2E_FLOW/ios.yml" ;;
-  *) echo "E2E_FLOW must be one of: settings, wikipedia" >&2; exit 1 ;;
+  settings|wikipedia|unicode) output_dir="artifacts/maestro/ios/$E2E_FLOW"; flow_args=".maestro/$E2E_FLOW/ios.yml" ;;
+  *) echo "E2E_FLOW must be one of: settings, wikipedia, unicode" >&2; exit 1 ;;
 esac
 maestro --version
 maestro --platform ios test -e E2E_LOCALE="$e2e_locale" $flow_args --test-output-dir "$output_dir" --debug-output "$output_dir" --flatten-debug-output
