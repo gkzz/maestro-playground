@@ -5,6 +5,10 @@ api_level="${API_LEVEL:?API_LEVEL is required}"
 arch="${ARCH:-x86_64}"
 target="${TARGET:-google_apis}"
 sdk_root="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-/usr/local/lib/android/sdk}}"
+ndk_version="${NDK_VERSION:-}"
+
+export ANDROID_SDK_ROOT="$sdk_root"
+export ANDROID_HOME="$sdk_root"
 
 if [[ -n "${GITHUB_ENV:-}" ]]; then
   {
@@ -34,7 +38,7 @@ done
 
 set +o pipefail
 set +e
-yes | "$sdkmanager_cmd" --licenses >/dev/null
+yes | "$sdkmanager_cmd" --sdk_root="$sdk_root" --licenses >/dev/null
 sdkmanager_status="${PIPESTATUS[1]}"
 set -e
 set -o pipefail
@@ -43,11 +47,17 @@ if [[ "$sdkmanager_status" -ne 0 ]]; then
   exit "$sdkmanager_status"
 fi
 
-"$sdkmanager_cmd" --install \
-  "platform-tools" \
-  "emulator" \
-  "platforms;android-${api_level}" \
+packages=(
+  "platform-tools"
+  "emulator"
+  "platforms;android-${api_level}"
   "system-images;android-${api_level};${target};${arch}"
+)
+if [[ -n "$ndk_version" ]]; then
+  packages+=("ndk;${ndk_version}")
+fi
+
+"$sdkmanager_cmd" --sdk_root="$sdk_root" --install "${packages[@]}"
 
 for cmd in "$sdk_root/emulator/emulator" "$sdk_root/platform-tools/adb"; do
   if [[ ! -x "$cmd" ]]; then

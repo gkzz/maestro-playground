@@ -92,9 +92,14 @@ until [[ "$("$adb_cmd" -s "$device_serial" shell id -u 2>/dev/null | tr -d '\r')
 done
 
 "$adb_cmd" -s "$device_serial" shell \
-  "setprop persist.sys.locale '$device_locale'; stop; sleep 5; start"
+  "setprop persist.sys.locale '$device_locale'; stop; setprop sys.boot_completed 0; sleep 5; start"
 
-until "$adb_cmd" -s "$device_serial" shell pm path android >/dev/null 2>&1; do
+# PackageManager becomes available before SystemUI and the launcher finish booting.
+# Reset sys.boot_completed above so the first boot's value cannot satisfy this wait.
+echo "Waiting for Android to finish restarting with locale ${device_locale}."
+until [[ "$("$adb_cmd" -s "$device_serial" shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" == "1" ]] \
+  && [[ "$("$adb_cmd" -s "$device_serial" shell getprop init.svc.bootanim 2>/dev/null | tr -d '\r')" == "stopped" ]] \
+  && "$adb_cmd" -s "$device_serial" shell pm path android >/dev/null 2>&1; do
   if ! kill -0 "$emulator_pid" 2>/dev/null; then
     echo "Android Emulator process exited while applying locale ${device_locale}." >&2
     tail -n 200 "$emulator_log" >&2 || true

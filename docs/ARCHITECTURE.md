@@ -100,6 +100,7 @@ Pull Request では、`Lint` と `E2E` の workflow を実行します。
 ```mermaid
 flowchart TB
   pr[Pull Request]
+  dispatch[workflow_dispatch: platform を選択]
 
   subgraph lint[Lint]
     actionlint[actionlint]
@@ -111,17 +112,24 @@ flowchart TB
   subgraph e2e[E2E]
     androidSettings[Android / settings]
     androidWikipedia[Android / wikipedia]
+    androidUnicode[Android / unicode]
+  end
+
+  subgraph iosE2E[E2E: iOS]
     iosSettings[iOS / settings]
     iosWikipedia[iOS / wikipedia]
+    iosUnicode[iOS / unicode]
   end
 
   pr --> lint
   pr --> e2e
+  dispatch -->|all / android| e2e
+  dispatch -->|all / ios| iosE2E
 ```
 
 `Lint` では workflow、shell script、Maestro flow などの構文を確認します。
 
-`E2E` では Android / iOS の各 flow を実行します。
+PR の `E2E` は Android の3フローを実行します。iOS は `workflow_dispatch` のみで実行し、`platform` が `ios` または `all` の場合に3フローを実行します。Android は手動実行でも `android` または `all` を選ぶと実行されます。ロケールは PR では `ja`、手動実行では `locale` 入力（既定値 `ja`）です。
 
 ### Runtime Setup in CI
 
@@ -133,7 +141,17 @@ flowchart LR
     androidAvd[android-avd.sh]
     androidEmulator[android-emulator.sh]
 
-    androidAction --> androidSdk --> androidAvd --> androidEmulator
+    sdkStep[Setup Android SDK: make setup-android-sdk]
+    flutterBuild[unicode のみ: Flutter 準備・APK ビルド]
+    install[アプリインストール: wikipedia / unicode]
+    test[Maestro E2E]
+
+    sdkStep --> androidSdk
+    androidSdk -->|unicode| flutterBuild --> androidAction
+    androidSdk -->|settings / wikipedia| androidAction
+    androidAction --> androidAvd --> androidEmulator
+    androidEmulator -->|wikipedia / unicode| install --> test
+    androidEmulator -->|settings| test
   end
 
   subgraph iOS
@@ -144,7 +162,11 @@ flowchart LR
   end
 ```
 
-E2E の実行環境は GitHub Actions の composite action から [utils/setup/](../utils/setup/) のスクリプトを直接呼び出してセットアップします。
+Android SDK のインストールは `setup-android-emulator` composite action から独立したステップです。`android-sdk.sh` が Platform 36 と API 36 の `google_apis;x86_64` system image を用意し、`unicode` の場合だけ `NDK_VERSION=28.2.13676358` で NDK もインストールします。SDK コマンドには同じ `--sdk_root` を渡し、`ANDROID_HOME` / `ANDROID_SDK_ROOT` と SDK の `PATH` を後続ステップに引き継ぎます。
+
+`unicode` は Java 17.0.21+9 を準備し、SDK / NDK セットアップ後に Flutter 3.38.5 を用意して `make build-demo-app` で APK をビルドします。その後、composite action が `android-avd.sh` と `android-emulator.sh` を順に呼び出します。起動後に APK をインストールして Maestro を実行します。`wikipedia` は配布済み APK を取得・インストールし、`settings` は OS 標準アプリを使用します。
+
+iOS の `unicode` は Flutter デモアプリを Simulator 向けにビルドしてから `setup-ios-simulator` を実行し、アプリのインストール後に Maestro を実行します。iOS のセットアップは従来どおり composite action が `ios-simulator.sh` を呼び出します。
 
 ### Artifacts
 
