@@ -1,5 +1,5 @@
 name: Setup Android Emulator
-description: Install Android SDK components, create an AVD, and boot an Android Emulator.
+description: Create an AVD and boot an Android Emulator. Requires Android SDK components to be installed first.
 
 inputs:
   api-level:
@@ -37,15 +37,6 @@ inputs:
 runs:
   using: composite
   steps:
-    - name: Install SDK components
-      shell: bash
-      env:
-        API_LEVEL: ${{ inputs.api-level }}
-        ARCH: ${{ inputs.arch }}
-        TARGET: ${{ inputs.target }}
-      run: |
-        "$GITHUB_ACTION_PATH/../../../utils/setup/android/android-sdk.sh"
-
     - name: Create AVD
       shell: bash
       env:

@@ -42,6 +42,8 @@ jobs:
             requires_apps: false
           - flow: wikipedia
             requires_apps: true
+          - flow: unicode
+            requires_apps: true
 
     steps:
       - name: Enable KVM group perms
@@ -56,6 +58,29 @@ jobs:
         uses: ./.github/actions/setup-mise
         with:
           install: "true"
+
+      - name: Setup Java for Flutter build
+        if: ${{ matrix.flow == 'unicode' }}
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5.7.0
+        with:
+          distribution: temurin
+          java-version: '17.0.21+9'
+
+      - name: Setup Android SDK
+        env:
+          API_LEVEL: 32
+          ARCH: x86_64
+          TARGET: google_apis
+        run: make setup-android-sdk
+
+      - name: Setup Flutter
+        if: ${{ matrix.flow == 'unicode' }}
+        run: bash setup/flutter-install.sh
+
+      - name: Build Flutter demo app
+        if: ${{ matrix.flow == 'unicode' }}
+        run: |
+          make build-demo-app
 
       - name: Setup Android Emulator
         uses: ./.github/actions/setup-android-emulator
@@ -76,10 +101,14 @@ jobs:
           } > local/android.env
 
       - name: Install test apps
-        if: ${{ matrix.requires_apps }}
+        if: ${{ matrix.requires_apps && matrix.flow != 'unicode' }}
         run: |
           e2e/download_apps android
           e2e/install_apps android
+
+      - name: Install Flutter demo app
+        if: ${{ matrix.flow == 'unicode' }}
+        run: make install-android-apps
 
       - name: Run Maestro on Android
         env:
@@ -115,6 +144,8 @@ jobs:
             requires_apps: false
           - flow: wikipedia
             requires_apps: true
+          - flow: unicode
+            requires_apps: true
 
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -124,6 +155,14 @@ jobs:
         with:
           install: "true"
 
+      - name: Setup Flutter
+        if: ${{ matrix.flow == 'unicode' }}
+        run: bash setup/flutter-install.sh
+
+      - name: Build Flutter demo app for iOS Simulator
+        if: ${{ matrix.flow == 'unicode' }}
+        run: make build-demo-app-ios
+
       - name: Setup iOS Simulator
         uses: ./.github/actions/setup-ios-simulator
         with:
@@ -131,10 +170,14 @@ jobs:
           device-type-name: iPhone 17 Pro
 
       - name: Install test apps
-        if: ${{ matrix.requires_apps }}
+        if: ${{ matrix.requires_apps && matrix.flow != 'unicode' }}
         run: |
           e2e/download_apps ios
           e2e/install_apps ios
+
+      - name: Install Flutter demo app
+        if: ${{ matrix.flow == 'unicode' }}
+        run: make install-ios-apps
 
       - name: Run Maestro on iOS
         env:
