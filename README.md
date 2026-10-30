@@ -138,3 +138,42 @@ make test-ios
 ```sh
 make test-android
 ```
+
+## Flutter Unicode input
+
+Build the upstream [Flutter demo app](https://github.com/mobile-dev-inc/Maestro/tree/7b0d53fb3e1e1740aba00444808718fda279e112/e2e/demo_app)
+with Flutter 3.38.5, Java 17.0.21+9 and the Android SDK, then run it on a connected emulator:
+
+```sh
+make build-demo-app
+make install-android-apps
+make test-android-unicode
+```
+
+On macOS, use Flutter 3.38.5, Xcode and CocoaPods to build for iOS Simulator.
+Start the simulator before installing the app:
+
+```sh
+make build-demo-app-ios
+RUNTIME_NAME="iOS 26.2" DEVICE_TYPE_NAME="iPhone 17 Pro" make setup-ios-simulator
+make install-ios-apps
+make test-ios-unicode
+```
+
+CI installs Flutter 3.38.5 from the official Flutter repository using
+`setup/flutter-install.sh`, pinned to its release commit. The SDK is downloaded
+for each job without an Actions cache. Android CI uses Temurin 17.0.21+9.
+
+The source revision is pinned in `e2e/build_demo_app`. Source and app output go to
+ignored `local/` and `e2e/apps/` directories. No upstream Actions artifact is required.
+The flow opens `Input/Keyboard`, inputs `東京` with `inputText`, and checks the
+`textInput` field by ID and exact text, then checks `copyTextFrom` for exact equality.
+This tests direct Unicode input, not Japanese keyboard composition or conversion.
+`copyTextFrom` reads into Maestro memory; it does not verify the system clipboard.
+
+Both Android and iOS CI matrices include `unicode`. iOS runs only through manual
+**E2E → Run workflow** dispatch; select this branch and `ios` or `all`.
+Artifacts are saved as `maestro-ios-unicode` for the iOS flow.
+The default local suites remain settings and Wikipedia; select
+`make test-android-unicode` or `make test-ios-unicode` explicitly.
+Runtime validation passed on both Android and iOS.
