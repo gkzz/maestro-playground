@@ -6,12 +6,22 @@ case "$platform" in
   android|ios) ;;
   *) echo "usage: $0 [android|ios]" >&2; exit 1 ;;
 esac
-command -v flutter >/dev/null 2>&1 || { echo "Flutter 3.38.5 is required" >&2; exit 1; }
+script_dir="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
+repo_dir="$(CDPATH= cd -- "$script_dir/.." && pwd)"
+export MISE_CONFIG_FILE="$repo_dir/.config/flutter/mise.toml"
+command -v mise >/dev/null 2>&1 || { echo "mise is required; run make install-flutter first." >&2; exit 1; }
+expected_version="$(mise config get --file "$MISE_CONFIG_FILE" tools.flutter)"
+command -v flutter >/dev/null 2>&1 || { echo "Flutter $expected_version is required; run make install-flutter and build through make." >&2; exit 1; }
+flutter_info="$(flutter --version --machine)"
+installed_version="$(printf '%s\n' "$flutter_info" | sed -n 's/.*"frameworkVersion"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p')"
+if [ "$installed_version" != "$expected_version" ]; then
+  echo "Flutter $expected_version is required; found ${installed_version:-unknown}." >&2
+  echo "Run make install-flutter, then make build-demo-app or make build-demo-app-ios." >&2
+  exit 1
+fi
 if [ "$platform" = ios ]; then
   command -v xcrun >/dev/null 2>&1 || { echo "Xcode on macOS is required for the iOS Simulator build" >&2; exit 1; }
 fi
-script_dir="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
-repo_dir="$(CDPATH= cd -- "$script_dir/.." && pwd)"
 # Pin app source so changes on upstream main cannot silently change this test.
 revision=7b0d53fb3e1e1740aba00444808718fda279e112
 source_dir="$repo_dir/local/demo-app-$revision"

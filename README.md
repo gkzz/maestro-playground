@@ -144,8 +144,10 @@ make test-android
 ## Flutter Unicode input
 
 Build the upstream [Flutter demo app](https://github.com/mobile-dev-inc/Maestro/tree/7b0d53fb3e1e1740aba00444808718fda279e112/e2e/demo_app)
-with Flutter 3.38.5, Java 17.0.21+9 and Android Platform 36. Set `NDK_VERSION`
+with the Flutter version pinned in [`.config/flutter/mise.toml`](.config/flutter/mise.toml),
+Java 17.0.21+9 and Android Platform 36. Set `NDK_VERSION`
 to explicitly install the build NDK; settings and Wikipedia do not require it.
+Install the locked Flutter SDK with `make install-flutter`.
 After SDK setup, build the APK, start the emulator and install the app:
 
 ```sh
@@ -157,7 +159,7 @@ make install-android-apps
 make test-android-unicode
 ```
 
-On macOS, use Flutter 3.38.5, Xcode and CocoaPods to build for iOS Simulator.
+On macOS, use the same pinned Flutter SDK, Xcode and CocoaPods to build for iOS Simulator.
 Start the simulator before installing the app:
 
 ```sh
@@ -167,9 +169,20 @@ make install-ios-apps
 make test-ios-unicode
 ```
 
-CI installs Flutter 3.38.5 from the official Flutter repository using
-`setup/flutter-install.sh`, pinned to its release commit. The SDK is downloaded
-for each job without an Actions cache. Android CI uses Temurin 17.0.21+9.
+Flutter is managed by mise using [`.config/flutter/mise.toml`](.config/flutter/mise.toml).
+Its separate config keeps Flutter optional for settings and Wikipedia jobs.
+`make install-flutter` and CI use `mise install --locked flutter`; the accompanying
+`mise.lock` pins official SDK archive URLs and SHA-256 checksums for Linux x64 and
+macOS arm64. Build targets select this SDK through `mise exec --locked flutter`.
+Direct script invocation rejects a mismatched version before downloading the demo app.
+Android CI uses Temurin 17.0.21+9.
+
+Renovate updates the Flutter version and mise lockfile together and never auto-merges
+Flutter updates. Before merging, require all three Android flows to pass and
+manually dispatch `ios` to verify all three iOS flows on the update branch.
+If an update changes Flutter's SDK / NDK requirements, adjust those pins in the same PR.
+Android API 36 is a manually selected test target. Emulator binary pinning and
+Renovate management are deferred to a separate PR.
 
 The source revision is pinned in `e2e/build_demo_app`. Source and app output go to
 ignored `local/` and `e2e/apps/` directories. No upstream Actions artifact is required.
@@ -183,4 +196,3 @@ Both Android and iOS CI matrices include `unicode`. iOS runs only through manual
 Artifacts are saved as `maestro-ios-unicode` for the iOS flow.
 The default local suites remain settings and Wikipedia; select
 `make test-android-unicode` or `make test-ios-unicode` explicitly.
-Previous runtime validation passed on both Android and iOS; Android API 36 requires a new E2E run.

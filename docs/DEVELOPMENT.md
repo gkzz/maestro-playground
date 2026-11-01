@@ -75,7 +75,9 @@ make test-android-wikipedia
 
 ### Flutter Unicode flow
 
-Flutter 3.38.5 と Java 17.0.21+9 を用意します。SDK セットアップ時に `NDK_VERSION` を指定すると、ビルド用 NDK も同時にインストールします。`settings` / `wikipedia` では指定不要です。
+Flutter は [`.config/flutter/mise.toml`](../.config/flutter/mise.toml) に指定したバージョンを `make install-flutter` で導入し、Java 17.0.21+9 を用意します。配布 URL と SHA-256 は同じディレクトリの `mise.lock` で固定します。Makefile は `mise exec --locked flutter` でこの SDK を選択し、ビルドスクリプトもバージョン不一致なら停止します。SDK セットアップ時に `NDK_VERSION` を指定すると、ビルド用 NDK も同時にインストールします。`settings` / `wikipedia` では指定不要です。
+
+Renovate は mise の標準対応で Flutter の安定版バージョンと lockfile を同時更新します。Flutter の自動マージは無効です。更新 PR では Android の3フローに加え、同じブランチで `workflow_dispatch` の `ios` を実行し、iOS の3フローも成功してからマージします。Flutter 更新で必要な SDK / NDK が変わった場合は、その PR で設定も調整します。Android API レベルは手動で選ぶテスト対象とし、Emulator 本体の固定・Renovate 管理は別 PR で扱います。
 
 ```sh
 API_LEVEL=36 ARCH=x86_64 TARGET=google_apis NDK_VERSION=28.2.13676358 make setup-android-sdk

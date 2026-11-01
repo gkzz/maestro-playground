@@ -1,8 +1,9 @@
 SHELL := /bin/bash
 MISE_CONFIG := $(CURDIR)/.config/mise/config.toml
 MISE := MISE_CONFIG_FILE="$(MISE_CONFIG)" mise
+FLUTTER_MISE := MISE_CONFIG_FILE="$(CURDIR)/.config/flutter/mise.toml" mise
 
-.PHONY: build-demo-app build-demo-app-ios help install maestro-version check-syntax \
+.PHONY: build-demo-app build-demo-app-ios help install install-flutter maestro-version check-syntax \
 	test-android test-android-settings test-android-wikipedia test-android-unicode \
 	test-ios test-ios-settings test-ios-wikipedia test-ios-unicode \
 	download-android-apps download-ios-apps install-android-apps install-ios-apps \
@@ -12,6 +13,7 @@ help:
 	@printf '%s\n' \
 		'Targets:' \
 		'  install                 Install mise-managed tools' \
+		'  install-flutter         Install the locked Flutter SDK for demo app builds' \
 		'  maestro-version         Print Maestro CLI version' \
 		'  check-syntax            Check all Maestro flow YAML files' \
 		'  test-android            Run default Android flows' \
@@ -57,10 +59,14 @@ test-android-unicode:
 	E2E_FLOW=unicode $(MISE) run maestro:test-android
 
 build-demo-app:
-	"./e2e/build_demo_app"
+	$(FLUTTER_MISE) exec --locked flutter -- "./e2e/build_demo_app"
 
 build-demo-app-ios:
-	"./e2e/build_demo_app" ios
+	$(FLUTTER_MISE) exec --locked flutter -- "./e2e/build_demo_app" ios
+
+install-flutter:
+	$(FLUTTER_MISE) trust --yes "$(CURDIR)/.config/flutter/mise.toml"
+	$(FLUTTER_MISE) install --locked flutter
 
 test-ios:
 	$(MISE) run maestro:test-ios

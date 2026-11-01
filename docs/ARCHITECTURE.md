@@ -164,7 +164,7 @@ flowchart LR
 
 Android SDK のインストールは `setup-android-emulator` composite action から独立したステップです。`android-sdk.sh` が Platform 36 と API 36 の `google_apis;x86_64` system image を用意し、`unicode` の場合だけ `NDK_VERSION=28.2.13676358` で NDK もインストールします。SDK 管理は公式の Android CLI の `android --sdk=... sdk install` に移行しています。CI では `setup/android-cli-install.sh` が公式配布の Linux x86_64 バイナリを取得します。AVD 作成は API と root 対応の `google_apis` image を明示するため、固定した Command-line Tools 22.0 の `avdmanager` を使用します。新 CLI の `android emulator create` が選択する Play Store image は `adb root` に対応せず、日本語切り替えに使えません。SDK コマンドには同じ SDK ディレクトリを渡し、`ANDROID_HOME` / `ANDROID_SDK_ROOT` と SDK の `PATH` を後続ステップに引き継ぎます。
 
-`unicode` は Java 17.0.21+9 を準備し、SDK / NDK セットアップ後に Flutter 3.38.5 を用意して `make build-demo-app` で APK をビルドします。その後、composite action が `android-avd.sh` と `android-emulator.sh` を順に呼び出します。起動後に APK をインストールして Maestro を実行します。`wikipedia` は配布済み APK を取得・インストールし、`settings` は OS 標準アプリを使用します。
+`unicode` は Java 17.0.21+9 を準備し、SDK / NDK セットアップ後に `.config/flutter/mise.toml` で固定した Flutter を用意して `make build-demo-app` で APK をビルドします。その後、composite action が `android-avd.sh` と `android-emulator.sh` を順に呼び出します。起動後に APK をインストールして Maestro を実行します。`wikipedia` は配布済み APK を取得・インストールし、`settings` は OS 標準アプリを使用します。
 
 iOS の `unicode` は Flutter デモアプリを Simulator 向けにビルドしてから `setup-ios-simulator` を実行し、アプリのインストール後に Maestro を実行します。iOS のセットアップは従来どおり composite action が `ios-simulator.sh` を呼び出します。
 
