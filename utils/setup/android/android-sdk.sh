@@ -39,6 +39,8 @@ packages=(
   "platforms/android-${api_level}"
   "system-images/android-${api_level}/${target}/${arch}"
   "cmdline-tools/$cmdline_tools_version"
+  # Required by the demo app's Android Gradle Plugin 8.9.1.
+  "build-tools/35.0.0"
 )
 if [[ -n "$ndk_version" ]]; then
   packages+=("ndk/${ndk_version}")
