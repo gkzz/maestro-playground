@@ -14,7 +14,8 @@ Maestro Flow から OS 標準の「設定」アプリと、追加のテスト対
 ├── .github
 │   ├── actions
 │   │   ├── setup-android-emulator
-│   │   └── setup-ios-simulator
+│   │   ├── setup-ios-simulator
+│   │   └── setup-mise
 │   └── workflows
 │       ├── e2e.yml
 │       └── lint.yml
@@ -23,10 +24,14 @@ Maestro Flow から OS 標準の「設定」アプリと、追加のテスト対
 │   ├── settings
 │   │   ├── android.yml
 │   │   └── ios.yml
+│   ├── unicode
+│   │   ├── android.yml
+│   │   └── ios.yml
 │   └── wikipedia
 │       ├── android.yml
 │       └── ios.yml
 ├── e2e
+│   ├── build_demo_app
 │   ├── download_apps
 │   ├── install_apps
 │   └── manifest.txt
@@ -43,8 +48,16 @@ Maestro Flow から OS 標準の「設定」アプリと、追加のテスト対
 │       └── ios
 │           └── ios-simulator.sh
 ├── .config
+│   ├── flutter
+│   │   ├── mise.lock
+│   │   └── mise.toml
 │   └── mise
-│       └── config.toml
+│       ├── config.toml
+│       └── mise.lock
+├── setup
+│   ├── android-cli-install.sh
+│   ├── flutter-install.sh
+│   └── mise-install.sh
 ├── Makefile
 ├── README.md
 └── renovate.json5
