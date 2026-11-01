@@ -17,7 +17,51 @@
     schedule: ["* * 1-7 * 1"],
   },
 
+  customManagers: [
+    {
+      customType: "regex",
+      managerFilePatterns: ["/^\\.config/(mise/config|flutter/mise)\\.toml$/"],
+      matchStrings: ['min_version = "(?<currentValue>[^"\\s]+)"'],
+      depNameTemplate: "mise",
+      packageNameTemplate: "jdx/mise",
+      datasourceTemplate: "github-releases",
+      versioningTemplate: "semver",
+      extractVersionTemplate: "^v(?<version>\\d+\\.\\d+\\.\\d+)$",
+    },
+    {
+      customType: "regex",
+      managerFilePatterns: ["/^\\.github/actions/setup-mise/action\\.yml$/"],
+      matchStrings: ['MISE_VERSION: "(?<currentValue>[^"\\s]+)"'],
+      depNameTemplate: "mise",
+      packageNameTemplate: "jdx/mise",
+      datasourceTemplate: "github-releases",
+      versioningTemplate: "semver",
+      extractVersionTemplate: "^v(?<version>\\d+\\.\\d+\\.\\d+)$",
+    },
+    {
+      // 各環境のチェックサムを GitHub Release の添付ファイルから更新する。
+      customType: "regex",
+      managerFilePatterns: ["/^\\.github/actions/setup-mise/action\\.yml$/"],
+      matchStrings: [
+        '# mise (?<currentValue>v[0-9.]+) (?<depName>[^\\s]+)\\n[ \\t]+MISE_SHA256_[A-Z0-9_]+: "(?<currentDigest>[a-f0-9]{64})"',
+      ],
+      packageNameTemplate: "jdx/mise",
+      datasourceTemplate: "github-release-attachments",
+      versioningTemplate: "semver",
+    },
+  ],
+
   packageRules: [
+    {
+      // mise 本体は gkzz/dotfiles リポジトリで先に更新し、こちらはその後に追従したい。
+      // この設定でリポジトリ間の更新順序は制御できないため、マージ前に dotfiles 側の更新を確認する。
+      matchManagers: ["custom.regex"],
+      matchPackageNames: ["jdx/mise"],
+      groupName: "mise CLI",
+      groupSlug: "mise-cli",
+      // 年をまたぐ major 更新も、全環境のチェックサムと同じ PR にまとめる。
+      separateMajorMinor: false,
+    },
     {
       matchManagers: ["mise"],
       matchPackageNames: ["flutter"],
