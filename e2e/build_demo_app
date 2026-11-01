@@ -1,0 +1,35 @@
+#!/usr/bin/env sh
+set -eu
+
+platform="${1:-android}"
+case "$platform" in
+  android|ios) ;;
+  *) echo "usage: $0 [android|ios]" >&2; exit 1 ;;
+esac
+command -v flutter >/dev/null 2>&1 || { echo "Flutter 3.38.5 is required" >&2; exit 1; }
+if [ "$platform" = ios ]; then
+  command -v xcrun >/dev/null 2>&1 || { echo "Xcode on macOS is required for the iOS Simulator build" >&2; exit 1; }
+fi
+script_dir="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
+repo_dir="$(CDPATH= cd -- "$script_dir/.." && pwd)"
+# Pin app source so changes on upstream main cannot silently change this test.
+revision=7b0d53fb3e1e1740aba00444808718fda279e112
+source_dir="$repo_dir/local/demo-app-$revision"
+mkdir -p "$source_dir" "$script_dir/apps"
+archive="$source_dir/source.tar.gz"
+curl -fL --retry 3 "https://codeload.github.com/mobile-dev-inc/Maestro/tar.gz/$revision" -o "$archive"
+tar -xzf "$archive" -C "$source_dir" --strip-components=3 "Maestro-$revision/e2e/demo_app"
+cd "$source_dir"
+flutter pub get
+case "$platform" in
+  android)
+    flutter build apk
+    cp build/app/outputs/flutter-apk/app-release.apk "$script_dir/apps/demo_app.apk"
+    # Release build memory before the emulator test starts.
+    (cd android && ./gradlew --stop)
+    ;;
+  ios)
+    flutter build ios --simulator
+    ditto build/ios/iphonesimulator/Runner.app "$script_dir/apps/demo_app.app"
+    ;;
+esac
