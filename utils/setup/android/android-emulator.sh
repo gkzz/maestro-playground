@@ -91,10 +91,34 @@ until [[ "$("$adb_cmd" -s "$device_serial" shell id -u 2>/dev/null | tr -d '\r')
   sleep 2
 done
 
-"$adb_cmd" -s "$device_serial" shell \
-  "setprop persist.sys.locale '$device_locale'; stop; sleep 5; start"
+"$adb_cmd" -s "$device_serial" shell setprop persist.sys.locale "$device_locale"
+"$adb_cmd" -s "$device_serial" reboot
 
-until "$adb_cmd" -s "$device_serial" shell pm path android >/dev/null 2>&1; do
+# Bound reconnection by the same deadline used for startup.
+remaining_seconds=$((deadline - SECONDS))
+if (( remaining_seconds <= 0 )) \
+  || ! timeout "${remaining_seconds}s" "$adb_cmd" -s "$device_serial" wait-for-device; then
+  echo "Android Emulator did not reconnect after reboot for locale ${device_locale}." >&2
+  "$adb_cmd" devices -l >&2 || true
+  tail -n 200 "$emulator_log" >&2 || true
+  exit 1
+fi
+
+# init.svc.bootanim may be empty with -no-boot-anim; use boot completion instead.
+echo "Waiting for Android to finish restarting with locale ${device_locale}."
+while true; do
+  boot_completed=$("$adb_cmd" -s "$device_serial" shell getprop sys.boot_completed 2>&1 | tr -d '\r' || true)
+  bootanim=$("$adb_cmd" -s "$device_serial" shell getprop init.svc.bootanim 2>&1 | tr -d '\r' || true)
+  current_locale=$("$adb_cmd" -s "$device_serial" shell getprop persist.sys.locale 2>&1 | tr -d '\r' || true)
+  package_ready=false
+  if package_path=$("$adb_cmd" -s "$device_serial" shell pm path android 2>&1 | tr -d '\r'); then
+    [[ "$package_path" == package:* ]] && package_ready=true
+  fi
+  echo "Android readiness: sys.boot_completed=[$boot_completed], init.svc.bootanim=[$bootanim], persist.sys.locale=[$current_locale], pm path android=[$package_path]"
+  if [[ "$boot_completed" == "1" \
+    && "$current_locale" == "$device_locale" && "$package_ready" == "true" ]]; then
+    break
+  fi
   if ! kill -0 "$emulator_pid" 2>/dev/null; then
     echo "Android Emulator process exited while applying locale ${device_locale}." >&2
     tail -n 200 "$emulator_log" >&2 || true

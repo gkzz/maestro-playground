@@ -1,0 +1,45 @@
+#!/usr/bin/env sh
+set -eu
+
+platform="${1:-android}"
+case "$platform" in
+  android|ios) ;;
+  *) echo "usage: $0 [android|ios]" >&2; exit 1 ;;
+esac
+script_dir="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
+repo_dir="$(CDPATH= cd -- "$script_dir/.." && pwd)"
+export MISE_CONFIG_FILE="$repo_dir/.config/flutter/mise.toml"
+command -v mise >/dev/null 2>&1 || { echo "mise is required; run make install-flutter first." >&2; exit 1; }
+expected_version="$(mise config get --file "$MISE_CONFIG_FILE" tools.flutter)"
+command -v flutter >/dev/null 2>&1 || { echo "Flutter $expected_version is required; run make install-flutter and build through make." >&2; exit 1; }
+flutter_info="$(flutter --version --machine)"
+installed_version="$(printf '%s\n' "$flutter_info" | sed -n 's/.*"frameworkVersion"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p')"
+if [ "$installed_version" != "$expected_version" ]; then
+  echo "Flutter $expected_version is required; found ${installed_version:-unknown}." >&2
+  echo "Run make install-flutter, then make build-demo-app or make build-demo-app-ios." >&2
+  exit 1
+fi
+if [ "$platform" = ios ]; then
+  command -v xcrun >/dev/null 2>&1 || { echo "Xcode on macOS is required for the iOS Simulator build" >&2; exit 1; }
+fi
+# Pin app source so changes on upstream main cannot silently change this test.
+revision=7b0d53fb3e1e1740aba00444808718fda279e112
+source_dir="$repo_dir/local/demo-app-$revision"
+mkdir -p "$source_dir" "$script_dir/apps"
+archive="$source_dir/source.tar.gz"
+curl -fL --retry 3 "https://codeload.github.com/mobile-dev-inc/Maestro/tar.gz/$revision" -o "$archive"
+tar -xzf "$archive" -C "$source_dir" --strip-components=3 "Maestro-$revision/e2e/demo_app"
+cd "$source_dir"
+flutter pub get
+case "$platform" in
+  android)
+    flutter build apk
+    cp build/app/outputs/flutter-apk/app-release.apk "$script_dir/apps/demo_app.apk"
+    # Release build memory before the emulator test starts.
+    (cd android && ./gradlew --stop)
+    ;;
+  ios)
+    flutter build ios --simulator
+    ditto build/ios/iphonesimulator/Runner.app "$script_dir/apps/demo_app.app"
+    ;;
+esac

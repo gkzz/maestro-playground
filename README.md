@@ -14,7 +14,8 @@ Maestro Flow から OS 標準の「設定」アプリと、追加のテスト対
 ├── .github
 │   ├── actions
 │   │   ├── setup-android-emulator
-│   │   └── setup-ios-simulator
+│   │   ├── setup-ios-simulator
+│   │   └── setup-mise
 │   └── workflows
 │       ├── e2e.yml
 │       └── lint.yml
@@ -23,10 +24,14 @@ Maestro Flow から OS 標準の「設定」アプリと、追加のテスト対
 │   ├── settings
 │   │   ├── android.yml
 │   │   └── ios.yml
+│   ├── unicode
+│   │   ├── android.yml
+│   │   └── ios.yml
 │   └── wikipedia
 │       ├── android.yml
 │       └── ios.yml
 ├── e2e
+│   ├── build_demo_app
 │   ├── download_apps
 │   ├── install_apps
 │   └── manifest.txt
@@ -43,8 +48,16 @@ Maestro Flow から OS 標準の「設定」アプリと、追加のテスト対
 │       └── ios
 │           └── ios-simulator.sh
 ├── .config
+│   ├── flutter
+│   │   ├── mise.lock
+│   │   └── mise.toml
 │   └── mise
-│       └── config.toml
+│       ├── config.toml
+│       └── mise.lock
+├── setup
+│   ├── android-cli-install.sh
+│   ├── flutter-install.sh
+│   └── mise-install.sh
 ├── Makefile
 ├── README.md
 └── renovate.json5
@@ -73,10 +86,12 @@ EOF
 
 Linux 上で Android SDK と Emulator もセットアップする場合は、Makefile の target を使います。
 
+[公式手順](https://developer.android.com/tools/agents/android-cli/download)で Android CLI をインストールし、同じシェルで `ANDROID_HOME` と `ANDROID_SDK_ROOT` を同じ SDK ディレクトリに設定してください。SDK の選択順は `ANDROID_SDK_ROOT`、`ANDROID_HOME`、`/usr/local/lib/android/sdk` です。SDK ステップは `android sdk install` で Command-line Tools 22.0、Platform 36 と `google_apis;x86_64` の system image をインストールします。AVD 作成は固定した Command-line Tools 22.0 の `avdmanager` を使います。新 CLI の `android emulator create` は API / image を指定できず、標準の Play Store image は日本語切り替えに必要な `adb root` を使えないためです。ローカルでは子プロセスの環境変数は親シェルに反映されないため、SDK の `platform-tools` と `emulator` も `PATH` に追加してください。
+
 ```sh
-API_LEVEL=32 ARCH=x86_64 TARGET=google_apis make setup-android-sdk
-API_LEVEL=32 ARCH=x86_64 TARGET=google_apis PROFILE=pixel_7 make setup-android-avd
-API_LEVEL=32 EMULATOR_PORT=5554 make boot-android-emulator
+API_LEVEL=36 ARCH=x86_64 TARGET=google_apis make setup-android-sdk
+API_LEVEL=36 ARCH=x86_64 TARGET=google_apis PROFILE=pixel_9 make setup-android-avd
+API_LEVEL=36 EMULATOR_PORT=5554 make boot-android-emulator
 ```
 
 ```sh
@@ -138,3 +153,59 @@ make test-ios
 ```sh
 make test-android
 ```
+
+## Flutter Unicode input
+
+Build the upstream [Flutter demo app](https://github.com/mobile-dev-inc/Maestro/tree/7b0d53fb3e1e1740aba00444808718fda279e112/e2e/demo_app)
+with the Flutter version pinned in [`.config/flutter/mise.toml`](.config/flutter/mise.toml),
+Java 17.0.21+9 and Android Platform 36. Set `NDK_VERSION`
+to explicitly install the build NDK; settings and Wikipedia do not require it.
+Install the locked Flutter SDK with `make install-flutter`.
+After SDK setup, build the APK, start the emulator and install the app:
+
+```sh
+API_LEVEL=36 ARCH=x86_64 TARGET=google_apis NDK_VERSION=28.2.13676358 make setup-android-sdk
+make build-demo-app
+API_LEVEL=36 ARCH=x86_64 TARGET=google_apis PROFILE=pixel_9 make setup-android-avd
+API_LEVEL=36 EMULATOR_PORT=5554 make boot-android-emulator
+make install-android-apps
+make test-android-unicode
+```
+
+On macOS, use the same pinned Flutter SDK, Xcode and CocoaPods to build for iOS Simulator.
+Start the simulator before installing the app:
+
+```sh
+make build-demo-app-ios
+RUNTIME_NAME="iOS 26.2" DEVICE_TYPE_NAME="iPhone 17 Pro" make setup-ios-simulator
+make install-ios-apps
+make test-ios-unicode
+```
+
+Flutter is managed by mise using [`.config/flutter/mise.toml`](.config/flutter/mise.toml).
+Its separate config keeps Flutter optional for settings and Wikipedia jobs.
+`make install-flutter` and CI use `mise install --locked flutter`; the accompanying
+`mise.lock` pins official SDK archive URLs and SHA-256 checksums for Linux x64 and
+macOS arm64. Build targets select this SDK through `mise exec --locked flutter`.
+Direct script invocation rejects a mismatched version before downloading the demo app.
+Android CI uses Temurin 17.0.21+9.
+
+Renovate updates the Flutter version and mise lockfile together and never auto-merges
+Flutter updates. Before merging, require all three Android flows to pass and
+manually dispatch `ios` to verify all three iOS flows on the update branch.
+If an update changes Flutter's SDK / NDK requirements, adjust those pins in the same PR.
+Android API 36 is a manually selected test target. Emulator binary pinning and
+Renovate management are deferred to a separate PR.
+
+The source revision is pinned in `e2e/build_demo_app`. Source and app output go to
+ignored `local/` and `e2e/apps/` directories. No upstream Actions artifact is required.
+The flow opens `Input/Keyboard`, inputs `東京` with `inputText`, and checks the
+`textInput` field by ID and exact text, then checks `copyTextFrom` for exact equality.
+This tests direct Unicode input, not Japanese keyboard composition or conversion.
+`copyTextFrom` reads into Maestro memory; it does not verify the system clipboard.
+
+Both Android and iOS CI matrices include `unicode`. iOS runs only through manual
+**E2E → Run workflow** dispatch; select this branch and `ios` or `all`.
+Artifacts are saved as `maestro-ios-unicode` for the iOS flow.
+The default local suites remain settings and Wikipedia; select
+`make test-android-unicode` or `make test-ios-unicode` explicitly.

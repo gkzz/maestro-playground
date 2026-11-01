@@ -19,6 +19,17 @@
 
   packageRules: [
     {
+      matchManagers: ["mise"],
+      matchPackageNames: ["flutter"],
+      groupName: "Flutter",
+      groupSlug: "flutter",
+      allowedVersions: "/^\\d+\\.\\d+\\.\\d+$/",
+      automerge: false,
+      prBodyNotes: [
+        "Flutter更新はAndroidの3フローと、手動実行したiOSの3フローの成功を確認してからマージしてください。",
+      ],
+    },
+    {
       // mise の GitHub backend は cli- 付きのリリースタグを必要とする。
       // asdf 用の既定ルールによる接頭辞の除去を上書きする。
       matchManagers: ["mise"],

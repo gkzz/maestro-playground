@@ -4,14 +4,26 @@ set -euo pipefail
 api_level="${API_LEVEL:?API_LEVEL is required}"
 arch="${ARCH:-x86_64}"
 target="${TARGET:-google_apis}"
-profile="${PROFILE:-pixel_7}"
+profile="${PROFILE:-pixel_9}"
 sdk_root="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-/usr/local/lib/android/sdk}}"
-avdmanager_cmd="$sdk_root/cmdline-tools/latest/bin/avdmanager"
+avdmanager_cmd="$sdk_root/cmdline-tools/22.0/bin/avdmanager"
 emulator_cmd="$sdk_root/emulator/emulator"
 avd_name="${AVD_NAME:-maestro-android-api-${api_level}}"
 avd_home="${ANDROID_AVD_HOME:-${HOME}/.android/avd}"
 
 mkdir -p "$avd_home"
+
+# Use the pinned tool installed by android-sdk.sh, independent of the runner's latest.
+if [[ ! -x "$avdmanager_cmd" ]]; then
+  echo "Run make setup-android-sdk first: missing $avdmanager_cmd" >&2
+  exit 1
+fi
+profiles="$("$avdmanager_cmd" list device -c)"
+if ! grep -Fxq "$profile" <<< "$profiles"; then
+  echo "Unsupported Android device profile: $profile. Available profiles:" >&2
+  printf '%s\n' "$profiles" >&2
+  exit 1
+fi
 
 set +o pipefail
 set +e

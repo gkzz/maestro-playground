@@ -1,10 +1,11 @@
 SHELL := /bin/bash
 MISE_CONFIG := $(CURDIR)/.config/mise/config.toml
 MISE := MISE_CONFIG_FILE="$(MISE_CONFIG)" mise
+FLUTTER_MISE := MISE_CONFIG_FILE="$(CURDIR)/.config/flutter/mise.toml" mise
 
-.PHONY: help install maestro-version check-syntax \
-	test-android test-android-settings test-android-wikipedia \
-	test-ios test-ios-settings test-ios-wikipedia \
+.PHONY: build-demo-app build-demo-app-ios help install install-flutter maestro-version check-syntax \
+	test-android test-android-settings test-android-wikipedia test-android-unicode \
+	test-ios test-ios-settings test-ios-wikipedia test-ios-unicode \
 	download-android-apps download-ios-apps install-android-apps install-ios-apps \
 	setup-android-sdk setup-android-avd boot-android-emulator setup-ios-simulator
 
@@ -12,14 +13,19 @@ help:
 	@printf '%s\n' \
 		'Targets:' \
 		'  install                 Install mise-managed tools' \
+		'  install-flutter         Install the locked Flutter SDK for demo app builds' \
 		'  maestro-version         Print Maestro CLI version' \
 		'  check-syntax            Check all Maestro flow YAML files' \
-		'  test-android            Run all Android flows' \
+		'  test-android            Run default Android flows' \
 		'  test-android-settings   Run Android settings flow' \
 		'  test-android-wikipedia  Run Android wikipedia flow' \
-		'  test-ios                Run all iOS flows' \
+		'  test-android-unicode    Verify Japanese input in Flutter demo app' \
+		'  build-demo-app          Build Flutter demo Android APK (requires Flutter)' \
+		'  build-demo-app-ios      Build Flutter demo iOS Simulator app (requires macOS)' \
+		'  test-ios                Run default iOS flows' \
 		'  test-ios-settings       Run iOS settings flow' \
 		'  test-ios-wikipedia      Run iOS wikipedia flow' \
+		'  test-ios-unicode        Verify Japanese input in Flutter demo app' \
 		'  download-android-apps   Download Android test apps' \
 		'  download-ios-apps       Download iOS test apps' \
 		'  install-android-apps    Install Android test apps' \
@@ -49,6 +55,19 @@ test-android-settings:
 test-android-wikipedia:
 	E2E_FLOW=wikipedia $(MISE) run maestro:test-android
 
+test-android-unicode:
+	E2E_FLOW=unicode $(MISE) run maestro:test-android
+
+build-demo-app:
+	$(FLUTTER_MISE) exec --locked flutter -- "./e2e/build_demo_app"
+
+build-demo-app-ios:
+	$(FLUTTER_MISE) exec --locked flutter -- "./e2e/build_demo_app" ios
+
+install-flutter:
+	$(FLUTTER_MISE) trust --yes "$(CURDIR)/.config/flutter/mise.toml"
+	$(FLUTTER_MISE) install --locked flutter
+
 test-ios:
 	$(MISE) run maestro:test-ios
 
@@ -57,6 +76,9 @@ test-ios-settings:
 
 test-ios-wikipedia:
 	E2E_FLOW=wikipedia $(MISE) run maestro:test-ios
+
+test-ios-unicode:
+	E2E_FLOW=unicode $(MISE) run maestro:test-ios
 
 download-android-apps:
 	"./e2e/download_apps" android

@@ -32,10 +32,12 @@ Android / iOS のセットアップの図は [ARCHITECTURE.md](./ARCHITECTURE.md
 
 ローカルではスクリプトを直接実行せず、[Makefile](../Makefile) の target 経由で呼び出します。
 
+[公式手順](https://developer.android.com/tools/agents/android-cli/download)で Android CLI をインストールし、同じシェルで `ANDROID_HOME` と `ANDROID_SDK_ROOT` を同じ SDK ディレクトリに設定してください。SDK の選択順は `ANDROID_SDK_ROOT`、`ANDROID_HOME`、`/usr/local/lib/android/sdk` です。SDK ステップは `android sdk install` で Command-line Tools 22.0、Platform 36 と `google_apis;x86_64` の system image をインストールします。AVD 作成は固定した Command-line Tools 22.0 の `avdmanager` を使います。新 CLI の `android emulator create` は API / image を指定できず、標準の Play Store image は日本語切り替えに必要な `adb root` を使えないためです。ローカルでは子プロセスの環境変数は親シェルに反映されないため、SDK の `platform-tools` と `emulator` も `PATH` に追加してください。
+
 ```
-API_LEVEL=32 ARCH=x86_64 TARGET=google_apis make setup-android-sdk
-API_LEVEL=32 ARCH=x86_64 TARGET=google_apis PROFILE=pixel_7 make setup-android-avd
-API_LEVEL=32 EMULATOR_PORT=5554 make boot-android-emulator
+API_LEVEL=36 ARCH=x86_64 TARGET=google_apis make setup-android-sdk
+API_LEVEL=36 ARCH=x86_64 TARGET=google_apis PROFILE=pixel_9 make setup-android-avd
+API_LEVEL=36 EMULATOR_PORT=5554 make boot-android-emulator
 ```
 
 ## Android
@@ -69,6 +71,21 @@ Wikipedia など追加のアプリを使用するテストでは、先にアプ�
 make download-android-apps
 make install-android-apps
 make test-android-wikipedia
+```
+
+### Flutter Unicode flow
+
+Flutter は [`.config/flutter/mise.toml`](../.config/flutter/mise.toml) に指定したバージョンを `make install-flutter` で導入し、Java 17.0.21+9 を用意します。配布 URL と SHA-256 は同じディレクトリの `mise.lock` で固定します。Makefile は `mise exec --locked flutter` でこの SDK を選択し、ビルドスクリプトもバージョン不一致なら停止します。SDK セットアップ時に `NDK_VERSION` を指定すると、ビルド用 NDK も同時にインストールします。`settings` / `wikipedia` では指定不要です。
+
+Renovate は mise の標準対応で Flutter の安定版バージョンと lockfile を同時更新します。Flutter の自動マージは無効です。更新 PR では Android の3フローに加え、同じブランチで `workflow_dispatch` の `ios` を実行し、iOS の3フローも成功してからマージします。Flutter 更新で必要な SDK / NDK が変わった場合は、その PR で設定も調整します。Android API レベルは手動で選ぶテスト対象とし、Emulator 本体の固定・Renovate 管理は別 PR で扱います。
+
+```sh
+API_LEVEL=36 ARCH=x86_64 TARGET=google_apis NDK_VERSION=28.2.13676358 make setup-android-sdk
+make build-demo-app
+API_LEVEL=36 ARCH=x86_64 TARGET=google_apis PROFILE=pixel_9 make setup-android-avd
+API_LEVEL=36 EMULATOR_PORT=5554 make boot-android-emulator
+make install-android-apps
+make test-android-unicode
 ```
 
 ## iOS
@@ -106,6 +123,6 @@ Pull Request では `Lint` と `E2E` を実行します。
 
 `Lint` では workflow、shell script、Maestro flow などの構文を確認します。
 
-`E2E` では Android / iOS の各 flow を実行します。
+PR の `E2E` では Android の `settings` / `wikipedia` / `unicode` を実行します。`workflow_dispatch` では `platform` に応じて Android / iOS を選択し、各プラットフォームの同じ3フローを実行します。
 
 CI の構成については [ARCHITECTURE.md](./ARCHITECTURE.md) の `CI` を参照してください。
