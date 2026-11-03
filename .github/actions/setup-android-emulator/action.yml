@@ -32,7 +32,7 @@ inputs:
   emulator-options:
     description: Command-line options passed to the emulator.
     required: false
-    default: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -accel on -no-metrics -camera-back emulated
+    default: -no-window -gpu swiftshader -no-snapshot -noaudio -no-boot-anim -accel on -no-metrics -camera-back emulated
 
 runs:
   using: composite

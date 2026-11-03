@@ -1,0 +1,82 @@
+name: Screenshot report
+
+on:
+  workflow_run:
+    workflows: [E2E]
+    types: [completed]
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: E2E run ID to report
+        type: string
+        required: true
+      locale:
+        description: Locale used by the source E2E run
+        type: choice
+        options: [ja, en]
+        default: ja
+        required: true
+permissions:
+  actions: read
+  contents: write
+
+concurrency:
+  group: screenshot-reports
+  cancel-in-progress: false
+
+jobs:
+  report:
+    if: ${{ (github.event_name == 'workflow_dispatch' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch)) || (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion != 'cancelled' && github.event.workflow_run.head_repository.full_name == github.repository) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          persist-credentials: false
+
+      - name: Install image comparison dependency
+        run: python3 -m pip install -r e2e/requirements.txt
+
+      - name: Test image comparison
+        run: python3 -m unittest discover -s e2e -p 'test_screenshot_report.py'
+
+      - name: Download Flutter captures
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SOURCE_RUN_ID: ${{ github.event.workflow_run.id || inputs.run_id }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/captures"
+          gh run download "$SOURCE_RUN_ID" --repo "$GITHUB_REPOSITORY" \
+            --pattern 'maestro-*-unicode' --dir "$RUNNER_TEMP/captures"
+
+      - name: Determine capture locale
+        env:
+          DISPATCH_LOCALE: ${{ inputs.locale || github.event.workflow_run.inputs.locale }}
+        run: |
+          if [[ -n "$DISPATCH_LOCALE" ]]; then
+            echo "E2E_LOCALE=$DISPATCH_LOCALE" >> "$GITHUB_ENV"
+          elif find "$RUNNER_TEMP/captures" -name '*-unicode-field-en.png' -print -quit | grep -q .; then
+            echo 'E2E_LOCALE=en' >> "$GITHUB_ENV"
+          else
+            echo 'E2E_LOCALE=ja' >> "$GITHUB_ENV"
+          fi
+
+      - name: Publish images and job summary
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SOURCE_RUN_ID: ${{ github.event.workflow_run.id || inputs.run_id }}
+        run: |
+          python3 e2e/screenshot_report.py \
+            --downloads "$RUNNER_TEMP/captures" \
+            --output artifacts/screenshot-report \
+            --locale "$E2E_LOCALE" --source-run "$SOURCE_RUN_ID" --publish
+
+      - name: Upload comparison report
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: screenshot-comparison-${{ env.E2E_LOCALE }}
+          path: artifacts/screenshot-report
+          retention-days: 1

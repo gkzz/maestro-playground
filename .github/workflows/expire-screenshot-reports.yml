@@ -1,0 +1,35 @@
+name: Expire screenshot reports
+
+on:
+  schedule:
+    - cron: '17 * * * *'
+  workflow_dispatch:
+  pull_request_target:
+    types: [closed]
+
+permissions:
+  actions: read
+  contents: write
+
+concurrency:
+  group: screenshot-reports
+  cancel-in-progress: false
+
+jobs:
+  expire:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Remove expired images
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CLOSED_PR: ${{ github.event.pull_request.number }}
+        run: |
+          if [ -n "$CLOSED_PR" ]; then
+            python3 e2e/screenshot_report.py --cleanup --closed-pr "$CLOSED_PR"
+          else
+            python3 e2e/screenshot_report.py --cleanup
+          fi

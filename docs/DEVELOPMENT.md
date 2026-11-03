@@ -126,3 +126,132 @@ Pull Request では `Lint` と `E2E` を実行します。
 PR の `E2E` では Android の `settings` / `wikipedia` / `unicode` を実行します。`workflow_dispatch` では `platform` に応じて Android / iOS を選択し、各プラットフォームの同じ3フローを実行します。
 
 CI の構成については [ARCHITECTURE.md](./ARCHITECTURE.md) の `CI` を参照してください。
+
+## ロケール別のキャプチャと画像比較
+
+Wikipedia の起動画面は、表示テキストを検証した後、`android-wikipedia-ja.png` のように OS とロケールを含む名前で保存します。現在のフローは起動画面の確認までで、検索操作は含みません。`E2E_LOCALE` は期待する表示言語の指定であり、端末の言語自体は実行前に合わせてください。
+
+```sh
+E2E_LOCALE=ja make test-android-wikipedia
+E2E_LOCALE=en make test-ios-wikipedia
+```
+
+画像は各フローの artifact ディレクトリ内の `takeScreenshot/` に出力されます。基準にしたい画像を確認してから別の場所に保存し、その絶対パスを指定して再実行します。通常の実行では画像を保存するだけです。
+
+```sh
+mkdir -p local/baselines
+# takeScreenshot/ 配下の画像を確認し、選んだ画像を次の名前でコピーする
+# local/baselines/android-wikipedia-ja.png
+E2E_LOCALE=ja E2E_SCREENSHOT_BASELINE="$PWD/local/baselines/android-wikipedia-ja.png" make test-android-wikipedia
+```
+
+比較には `assertScreenshot` を使い、`thresholdPercentage: 100` で完全一致を要求します。ベースラインが存在しない場合も失敗します。同じ OS、端末サイズ、言語、アプリバージョンで比較してください。全画面の比較には時刻などの変化も含まれます。ロケールごとの画像を上書きせず保存する場合は、各実行後にコピーしてください。`local/` と `artifacts/` は Git 管理外です。
+
+任意の画面で比較したい場合は、対象の操作・表示待ちの後に次のコマンドを置きます。オブジェクト形式でベースラインを指定するキーは `path` です。
+
+```yaml
+- assertScreenshot:
+    path: /absolute/path/home-page-baseline.png
+    thresholdPercentage: 100
+```
+
+特定の要素だけを比較するときは、撮影と比較で同じ `cropOn` を指定します。次は対象アプリに `profile_card` という ID が存在する場合の例です。Wikipedia フローへそのまま追加するものではありません。
+
+```yaml
+# 初回は撮影し、出力画像を確認して別の場所にベースラインとして保存する
+- takeScreenshot:
+    path: profile-card-candidate
+    cropOn:
+      id: profile_card
+
+# 次回から、保存した切り抜き画像と比較する
+- assertScreenshot:
+    path: /absolute/path/profile-card-baseline.png
+    cropOn:
+      id: profile_card
+    thresholdPercentage: 100
+```
+
+比較対象の画像も同じ要素を切り抜いたものにしてください。判定結果と画像は実行後の artifact で確認します。詳細は [assertScreenshot の公式仕様](https://docs.maestro.dev/reference/commands-available/assertscreenshot) を参照してください。
+
+
+### Flutter 入力画面のキャプチャと比較
+
+`unicode` フローでは `東京` の入力を検証した後、Save で保存してアプリを再起動します。
+入力画面を開き直し、保存した文字列の表示を確認してから、画面全体を
+`android-unicode-input-ja.png`、比較用の入力欄を
+`android-unicode-field-ja.png` のように保存します。iOS は `ios`、英語環境は
+`en` が名前に入ります。どちらも各フローの `takeScreenshot/` 配下に出力します。
+
+```sh
+E2E_LOCALE=ja make test-android-unicode
+```
+
+初回はキャプチャを確認し、入力欄の画像を次の場所へコピーしてください。
+
+```sh
+mkdir -p e2e/baselines
+# takeScreenshot/ 配下の android-unicode-field-ja.png を選んでコピーする
+# 保存先: e2e/baselines/android-unicode-field-ja.png
+E2E_LOCALE=ja make test-android-unicode
+```
+
+`e2e/baselines/<android|ios>-unicode-field-<ja|en>.png` が存在すると、
+同じ OS・ロケールの基準画像と入力欄を `assertScreenshot` で比較します。
+日本語の基準画像は [Android CI 実行 #41563686593](https://github.com/gkzz/maestro-playground/actions/runs/41563686593) と
+[iOS CI 実行 #41559360999](https://github.com/gkzz/maestro-playground/actions/runs/41559360999) のキャプチャから作成しました。
+基準画像をリポジトリに含めると、CI の Flutter（`unicode`）ジョブでも
+自動で比較します。基準画像がまだない組み合わせは撮影のみです。
+基準画像は自動更新しません。更新時は画像を確認して差し替えてください。
+
+別の基準画像を使う場合は、既存の `E2E_SCREENSHOT_BASELINE` を指定します。
+明示したパスが存在しなければ比較は失敗します。
+
+```sh
+E2E_LOCALE=ja E2E_SCREENSHOT_BASELINE="$PWD/local/baselines/android-unicode-field-ja.png" make test-android-unicode
+```
+
+画面を開き直すことで入力欄のフォーカスを外し、点滅するカーソルを比較対象から除きます。
+入力欄を切り抜いて比較するため、基準画像には画面全体ではなく
+`unicode-field` の画像を使用してください。完全一致を要求し、差があれば
+ジョブが失敗します。比較結果と画像は既存の Maestro artifact から確認できます。
+端末サイズ、OS、アプリ、フォントなどの条件は基準画像と揃えてください。
+
+この画面のラベルは英語固定です。ロケール名を含むキャプチャや入力欄の比較は、
+端末の言語が正しく設定されたこと自体の検証にはなりません。
+CI では既存の Emulator / Simulator セットアップが `E2E_LOCALE` を適用します。
+ローカルでも同じロケールで端末をセットアップしてから実行してください。
+
+
+### GitHub Actions の画像比較サマリー
+
+同じリポジトリの PR と手動実行では、E2E の完了後にデフォルトブランチの
+`Screenshot report` workflow が起動し、サマリーを生成します。
+Summary に OS・ロケールごとの基準画像、今回の入力欄、差分画像を横並びで表示し、
+一致率、差分ピクセル数、画像サイズを記載します。差分ピクセルはピンクで表示します。
+画面全体のキャプチャも折りたたみ内で表示します。
+
+画像を Summary 内で表示するため、専用の `screenshot-reports` ブランチに保存します。
+Summary はこのブランチの URL を参照します。画像は実行から1日経過後、
+定期実行の `Expire screenshot reports` workflow がブランチから削除します。
+PR のクローズ時には、その PR の E2E 実行から作られた画像を早めに削除します。
+Maestro の artifact と比較レポートの artifact も `retention-days: 1` です。
+定期実行の遅延により、画像が消える時刻は24時間ちょうどとは限りません。
+ブランチは期限切れ画像を除いた履歴に作り直します。ただし GitHub の内部キャッシュや
+到達不能な Git オブジェクトの物理削除時刻までは制御できません。
+画像の公開と削除には専用ジョブに `contents: write` を付与します。PR の E2E ジョブは
+書き込み権限を持たず、公開ジョブはデフォルトブランチのコードを実行します。
+fork からの PR では画像公開ジョブを実行せず、通常の Maestro artifact を使用します。
+
+基準画像がない場合は未比較、キャプチャがない場合は取得できなかった旨を表示します。
+Summary のピクセル比較は結果の可視化用です。E2E の成否は元の Maestro ジョブで確認してください。
+初回の基準画像と同じ取得元を指定したレポートは、同一画像の比較となります。
+
+既存の E2E 実行から Summary を生成する場合は、デフォルトブランチの
+`Screenshot report` workflow を手動実行し、`run_id` と取得時の `locale` を指定します。
+基準画像にはデフォルトブランチの画像を使います。
+
+Android の Maestro 実行開始時に `deviceInfo` 取得中のデバイスサーバー切断が起きた場合、
+CI は1回だけ再実行します。初回の `maestro.log` は
+`maestro-first-attempt.log` として artifact に残します。
+画像の不一致や他のテスト失敗では再実行しません。
