@@ -198,6 +198,8 @@ E2E_LOCALE=ja make test-android-unicode
 
 `e2e/baselines/<android|ios>-unicode-field-<ja|en>.png` が存在すると、
 同じ OS・ロケールの基準画像と入力欄を `assertScreenshot` で比較します。
+Summary 用の入力欄を撮影した後、アプリを開き直して保存済みの文字列を確認し、
+Maestro の判定用画像を別途撮影します。両者は異なる時点の画像です。
 日本語の基準画像は [Android CI 実行 #41563686593](https://github.com/gkzz/maestro-playground/actions/runs/41563686593) と
 [iOS CI 実行 #41559360999](https://github.com/gkzz/maestro-playground/actions/runs/41559360999) のキャプチャから作成しました。
 基準画像をリポジトリに含めると、CI の Flutter（`unicode`）ジョブでも
@@ -225,8 +227,8 @@ CI では既存の Emulator / Simulator セットアップが `E2E_LOCALE` を�
 
 ### GitHub Actions の画像比較サマリー
 
-同じリポジトリの PR と手動実行では、E2E の完了後にデフォルトブランチの
-`Screenshot report` workflow が起動し、サマリーを生成します。
+同じリポジトリの PR と手動実行では、E2E のテストジョブの後にデフォルトブランチの
+`Screenshot report` workflow を呼び出し、同じ E2E 実行内にサマリーを生成します。
 Summary に OS・ロケールごとの基準画像、今回の入力欄、差分画像を横並びで表示し、
 一致率、差分ピクセル数、画像サイズを記載します。差分ピクセルはピンクで表示します。
 画面全体のキャプチャも折りたたみ内で表示します。
@@ -247,8 +249,6 @@ fork からの PR では画像公開ジョブを実行せず、通常の Maestro
 Summary のピクセル比較は結果の可視化用です。E2E の成否は元の Maestro ジョブで確認してください。
 初回の基準画像と同じ取得元を指定したレポートは、同一画像の比較となります。
 
-既存の E2E 実行から Summary を生成する場合は、デフォルトブランチの
-`Screenshot report` workflow を手動実行し、`run_id` と取得時の `locale` を指定します。
 基準画像にはデフォルトブランチの画像を使います。
 
 Android の Maestro 実行開始時に `deviceInfo` 取得中のデバイスサーバー切断が起きた場合、

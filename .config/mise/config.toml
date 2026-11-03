@@ -11,7 +11,7 @@ min_version = "2026.10.14"
 [tools]
 # バージョンは完全固定し、更新は Renovate で管理するため、
 # ツール個別の minimum_release_age は指定しない。
-maestro = "cli-2.11.0"
+maestro = "cli-2.12.1"
 
 [tasks."maestro:version"]
 description = "Print the mise-managed Maestro CLI version."
