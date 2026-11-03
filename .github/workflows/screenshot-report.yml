@@ -1,20 +1,13 @@
 name: Screenshot report
 
 on:
-  workflow_run:
-    workflows: [E2E]
-    types: [completed]
-  workflow_dispatch:
+  workflow_call:
     inputs:
       run_id:
-        description: E2E run ID to report
         type: string
         required: true
       locale:
-        description: Locale used by the source E2E run
-        type: choice
-        options: [ja, en]
-        default: ja
+        type: string
         required: true
 permissions:
   actions: read
@@ -26,7 +19,6 @@ concurrency:
 
 jobs:
   report:
-    if: ${{ (github.event_name == 'workflow_dispatch' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch)) || (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion != 'cancelled' && github.event.workflow_run.head_repository.full_name == github.repository) }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -45,28 +37,21 @@ jobs:
         continue-on-error: true
         env:
           GH_TOKEN: ${{ github.token }}
-          SOURCE_RUN_ID: ${{ github.event.workflow_run.id || inputs.run_id }}
+          SOURCE_RUN_ID: ${{ inputs.run_id }}
         run: |
           mkdir -p "$RUNNER_TEMP/captures"
           gh run download "$SOURCE_RUN_ID" --repo "$GITHUB_REPOSITORY" \
             --pattern 'maestro-*-unicode' --dir "$RUNNER_TEMP/captures"
 
-      - name: Determine capture locale
+      - name: Set capture locale
         env:
-          DISPATCH_LOCALE: ${{ inputs.locale || github.event.workflow_run.inputs.locale }}
-        run: |
-          if [[ -n "$DISPATCH_LOCALE" ]]; then
-            echo "E2E_LOCALE=$DISPATCH_LOCALE" >> "$GITHUB_ENV"
-          elif find "$RUNNER_TEMP/captures" -name '*-unicode-field-en.png' -print -quit | grep -q .; then
-            echo 'E2E_LOCALE=en' >> "$GITHUB_ENV"
-          else
-            echo 'E2E_LOCALE=ja' >> "$GITHUB_ENV"
-          fi
+          E2E_LOCALE: ${{ inputs.locale }}
+        run: echo "E2E_LOCALE=$E2E_LOCALE" >> "$GITHUB_ENV"
 
       - name: Publish images and job summary
         env:
           GH_TOKEN: ${{ github.token }}
-          SOURCE_RUN_ID: ${{ github.event.workflow_run.id || inputs.run_id }}
+          SOURCE_RUN_ID: ${{ inputs.run_id }}
         run: |
           python3 e2e/screenshot_report.py \
             --downloads "$RUNNER_TEMP/captures" \
