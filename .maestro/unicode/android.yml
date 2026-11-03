@@ -32,6 +32,13 @@ tags:
     when:
       true: ${typeof SCREENSHOT_BASELINE !== 'undefined' && SCREENSHOT_BASELINE !== ''}
     commands:
+      # Capture a fresh screen for Maestro, separate from the Summary image.
+      - stopApp
+      - launchApp
+      - tapOn: Input/Keyboard
+      - assertVisible:
+          id: textInput
+          text: ^東京$
       - assertScreenshot:
           path: ${SCREENSHOT_BASELINE}
           cropOn:

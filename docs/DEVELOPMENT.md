@@ -198,6 +198,8 @@ E2E_LOCALE=ja make test-android-unicode
 
 `e2e/baselines/<android|ios>-unicode-field-<ja|en>.png` が存在すると、
 同じ OS・ロケールの基準画像と入力欄を `assertScreenshot` で比較します。
+Summary 用の入力欄を撮影した後、アプリを開き直して保存済みの文字列を確認し、
+Maestro の判定用画像を別途撮影します。両者は異なる時点の画像です。
 日本語の基準画像は [Android CI 実行 #41563686593](https://github.com/gkzz/maestro-playground/actions/runs/41563686593) と
 [iOS CI 実行 #41559360999](https://github.com/gkzz/maestro-playground/actions/runs/41559360999) のキャプチャから作成しました。
 基準画像をリポジトリに含めると、CI の Flutter（`unicode`）ジョブでも
