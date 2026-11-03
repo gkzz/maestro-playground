@@ -42,13 +42,24 @@ packages=(
   # Required by the demo app's Android Gradle Plugin 8.9.1.
   "build-tools/35.0.0"
 )
-if [[ -n "$ndk_version" ]]; then
-  packages+=("ndk/${ndk_version}")
-fi
-
 # Keep avdmanager for explicit API/image selection and root-capable google_apis images.
 # android emulator create currently selects a Play Store image that cannot run adb root.
 "$android_cmd" --no-metrics --sdk="$sdk_root" sdk install "${packages[@]}"
+
+if [[ -n "$ndk_version" ]]; then
+  # Large NDK downloads can fail with a transient connection close in CI.
+  for attempt in 1 2 3; do
+    if "$android_cmd" --no-metrics --sdk="$sdk_root" sdk install "ndk/${ndk_version}"; then
+      break
+    fi
+    if (( attempt == 3 )); then
+      echo "Failed to install NDK ${ndk_version} after ${attempt} attempts" >&2
+      exit 1
+    fi
+    echo "NDK install failed (attempt ${attempt}/3); retrying in $((attempt * 10)) seconds" >&2
+    sleep "$((attempt * 10))"
+  done
+fi
 
 for cmd in "$sdk_root/emulator/emulator" "$sdk_root/platform-tools/adb" "$sdk_root/cmdline-tools/$cmdline_tools_version/bin/avdmanager"; do
   if [[ ! -x "$cmd" ]]; then
