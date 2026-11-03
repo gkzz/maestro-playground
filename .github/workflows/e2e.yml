@@ -208,7 +208,7 @@ jobs:
     permissions:
       actions: read
       contents: write
-    uses: ./.github/workflows/screenshot-report.yml
+    uses: gkzz/maestro-playground/.github/workflows/screenshot-report.yml@main
     with:
       run_id: ${{ github.run_id }}
       locale: ${{ inputs.locale || 'ja' }}
