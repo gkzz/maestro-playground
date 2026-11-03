@@ -12,7 +12,7 @@ permissions:
 
 jobs:
   actionlint:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout
@@ -25,7 +25,7 @@ jobs:
           args: -color
 
   maestro-check-syntax:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout
@@ -41,7 +41,7 @@ jobs:
           mise run maestro:check-syntax
 
   shell-check-syntax:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout
@@ -57,7 +57,7 @@ jobs:
           done
 
   renovate-validate-config:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout
