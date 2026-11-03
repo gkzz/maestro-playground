@@ -15,4 +15,25 @@ tags:
 - copyTextFrom:
     id: textInput
 - assertTrue: ${maestro.copiedText === "東京"}
-- takeScreenshot: ios-unicode-input
+# Reopen the saved input with no focus so the blinking caret is not compared.
+- tapOn: Save
+- stopApp
+- launchApp
+- tapOn: Input/Keyboard
+- assertVisible:
+    id: textInput
+    text: ^東京$
+- takeScreenshot: ios-unicode-input-${E2E_LOCALE}
+- takeScreenshot:
+    path: ios-unicode-field-${E2E_LOCALE}
+    cropOn:
+      id: textInput
+- runFlow:
+    when:
+      true: ${typeof SCREENSHOT_BASELINE !== 'undefined' && SCREENSHOT_BASELINE !== ''}
+    commands:
+      - assertScreenshot:
+          path: ${SCREENSHOT_BASELINE}
+          cropOn:
+            id: textInput
+          thresholdPercentage: 100

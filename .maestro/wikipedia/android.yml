@@ -10,4 +10,11 @@ env:
     visible: ${EXPECTED_TEXT}
     timeout: 10000
 - assertVisible: ${EXPECTED_TEXT}
-- takeScreenshot: android-wikipedia
+- takeScreenshot: android-wikipedia-${E2E_LOCALE}
+- runFlow:
+    when:
+      true: ${typeof SCREENSHOT_BASELINE !== 'undefined' && SCREENSHOT_BASELINE !== ''}
+    commands:
+      - assertScreenshot:
+          path: ${SCREENSHOT_BASELINE}
+          thresholdPercentage: 100

@@ -8,7 +8,7 @@ emulator_cmd="$sdk_root/emulator/emulator"
 avd_name="${AVD_NAME:-maestro-android-api-${api_level}}"
 emulator_port="${EMULATOR_PORT:-5554}"
 emulator_boot_timeout="${EMULATOR_BOOT_TIMEOUT:-1200}"
-emulator_options="${EMULATOR_OPTIONS:-no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -accel on -no-metrics -camera-back emulated}"
+emulator_options="${EMULATOR_OPTIONS:-no-window -gpu swiftshader -no-snapshot -noaudio -no-boot-anim -accel on -no-metrics -camera-back emulated}"
 device_serial="emulator-${emulator_port}"
 deadline=$((SECONDS + emulator_boot_timeout))
 emulator_log="${RUNNER_TEMP:-/tmp}/android-emulator.log"
@@ -33,9 +33,12 @@ fi
 echo "Available AVDs:"
 "$emulator_cmd" -list-avds
 echo "Starting Android Emulator ${device_serial} from AVD ${avd_name}."
-# shellcheck disable=SC2086
-nohup "$emulator_cmd" @"$avd_name" -port "$emulator_port" $emulator_options > "$emulator_log" 2>&1 &
-emulator_pid="$!"
+start_emulator() {
+  # shellcheck disable=SC2086
+  nohup "$emulator_cmd" @"$avd_name" -port "$emulator_port" $emulator_options > "$emulator_log" 2>&1 &
+  emulator_pid="$!"
+}
+start_emulator
 
 until [[ "$("$adb_cmd" -s "$device_serial" get-state 2>/dev/null || true)" == "device" ]]; do
   if ! kill -0 "$emulator_pid" 2>/dev/null; then
@@ -95,14 +98,29 @@ done
 "$adb_cmd" -s "$device_serial" reboot
 
 # Bound reconnection by the same deadline used for startup.
-remaining_seconds=$((deadline - SECONDS))
-if (( remaining_seconds <= 0 )) \
-  || ! timeout "${remaining_seconds}s" "$adb_cmd" -s "$device_serial" wait-for-device; then
-  echo "Android Emulator did not reconnect after reboot for locale ${device_locale}." >&2
-  "$adb_cmd" devices -l >&2 || true
-  tail -n 200 "$emulator_log" >&2 || true
-  exit 1
-fi
+restart_attempted=false
+until [[ "$("$adb_cmd" -s "$device_serial" get-state 2>/dev/null || true)" == "device" ]]; do
+  if ! kill -0 "$emulator_pid" 2>/dev/null; then
+    if [[ "$restart_attempted" == false ]] && (( SECONDS < deadline )); then
+      echo "Android Emulator exited during locale reboot; starting it once more with the saved locale." >&2
+      tail -n 80 "$emulator_log" >&2 || true
+      restart_attempted=true
+      start_emulator
+      continue
+    fi
+    echo "Android Emulator process exited while reconnecting after reboot for locale ${device_locale}." >&2
+    "$adb_cmd" devices -l >&2 || true
+    tail -n 200 "$emulator_log" >&2 || true
+    exit 1
+  fi
+  if (( SECONDS >= deadline )); then
+    echo "Android Emulator did not reconnect after reboot for locale ${device_locale}." >&2
+    "$adb_cmd" devices -l >&2 || true
+    tail -n 200 "$emulator_log" >&2 || true
+    exit 1
+  fi
+  sleep 2
+done
 
 # init.svc.bootanim may be empty with -no-boot-anim; use boot completion instead.
 echo "Waiting for Android to finish restarting with locale ${device_locale}."
@@ -120,6 +138,14 @@ while true; do
     break
   fi
   if ! kill -0 "$emulator_pid" 2>/dev/null; then
+    if [[ "$restart_attempted" == false ]] && (( SECONDS < deadline )); then
+      echo "Android Emulator exited while applying locale; starting it once more with the saved locale." >&2
+      tail -n 80 "$emulator_log" >&2 || true
+      restart_attempted=true
+      start_emulator
+      sleep 5
+      continue
+    fi
     echo "Android Emulator process exited while applying locale ${device_locale}." >&2
     tail -n 200 "$emulator_log" >&2 || true
     exit 1

@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+flow="${E2E_FLOW:?E2E_FLOW is required}"
+log="artifacts/maestro/android/$flow/maestro.log"
+
+status=0
+mise run maestro:test-android || status=$?
+if (( status == 0 )); then
+  exit 0
+fi
+
+# A lost device server before the flow starts is transient. Do not retry assertions.
+if [[ ! -f "$log" ]] || ! rg -q "Device server died during 'deviceInfo'" "$log"; then
+  exit "$status"
+fi
+
+cp "$log" "${log%.log}-first-attempt.log"
+echo 'Maestro lost the Android device server during deviceInfo; retrying once.'
+sleep 5
+mise run maestro:test-android
