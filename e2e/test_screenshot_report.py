@@ -18,10 +18,13 @@ class ScreenshotReportTest(unittest.TestCase):
             (downloads / 'ios-unicode-field-ja.png').write_bytes(b'current')
             (root / 'baselines').mkdir()
             (root / 'baselines' / 'ios-unicode-field-ja.png').write_bytes(b'baseline')
-            (flow / 'diff.png').write_bytes(b'maestro diff')
+            (flow / 'assert-screenshot').mkdir()
+            (flow / 'assert-screenshot' / 'example-diff.png').write_bytes(b'maestro diff')
             (flow / 'commands.json').write_text(json.dumps([
-                {'command': {'assertScreenshot': {'path': 'baseline.png'}},
-                 'status': 'FAILED', 'artifacts': [{'relativePath': 'diff.png'}]}]))
+                {'command': {'assertScreenshotCommand': {}},
+                 'metadata': {'status': 'FAILED', 'artifacts': [
+                     {'type': 'SCREENSHOT_DIFF',
+                      'path': 'assert-screenshot/example-diff.png'}]}}]))
             report = build(downloads, root / 'baselines', root / 'report', 'ja')
             self.assertIn('Maestro assertScreenshot: FAILED', report)
             self.assertIn('![diff]', report)

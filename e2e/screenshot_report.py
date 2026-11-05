@@ -32,14 +32,15 @@ def assertion(downloads, platform):
     if not matches:
         return None, []
     result = matches[-1]
+    metadata = result.get('metadata', {})
     artifacts = []
-    for item in result.get('artifacts', []):
-        path = item if isinstance(item, str) else item.get('relativePath', item.get('path'))
+    for item in metadata.get('artifacts', []):
+        path = item.get('path')
         if path:
             candidate = (files[0].parent / path).resolve()
             if candidate.is_relative_to(files[0].parent.resolve()) and candidate.is_file():
                 artifacts.append(candidate)
-    return result.get('status'), artifacts
+    return metadata.get('status'), artifacts
 
 
 def build(downloads, baselines, output, locale):
