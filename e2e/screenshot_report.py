@@ -1,4 +1,4 @@
-"""Build and publish Flutter screenshot comparisons for the Actions job summary."""
+"""Summarize Maestro screenshot assertions for the Actions job summary."""
 import argparse
 import base64
 import json
@@ -19,31 +19,27 @@ def api(path, payload=None):
     return json.loads(result.stdout)
 
 
-def compare(baseline, current, output):
-    from PIL import Image, ImageChops
-
-    with Image.open(baseline) as image:
-        expected = image.convert('RGBA')
-    with Image.open(current) as image:
-        actual = image.convert('RGBA')
-    size = (max(expected.width, actual.width), max(expected.height, actual.height))
-    left = Image.new('RGBA', size)
-    right = Image.new('RGBA', size)
-    left.paste(expected, (0, 0))
-    right.paste(actual, (0, 0))
-    delta = ImageChops.difference(left, right)
-    mask = delta.getchannel('R')
-    for channel in ('G', 'B', 'A'):
-        mask = ImageChops.lighter(mask, delta.getchannel(channel))
-    mask = mask.point(lambda value: 255 if value else 0)
-    changed = mask.histogram()[255]
-    highlighted = right.convert('RGB')
-    highlighted.paste((255, 0, 80), (0, 0, *size), mask)
-    highlighted.save(output)
-    match = 100 * (1 - changed / (size[0] * size[1]))
-    status = 'PASS' if changed == 0 and expected.size == actual.size else 'FAIL'
-    dimensions = f'{expected.width}×{expected.height} → {actual.width}×{actual.height}'
-    return f'{status}: {match:.4f}% match; {changed} changed pixels; {dimensions}'
+def assertion(downloads, platform):
+    """Return the last executed Maestro screenshot assertion and its artifacts."""
+    files = list((downloads / f'maestro-{platform}-unicode').rglob('commands.json'))
+    if len(files) > 1:
+        raise ValueError(f'Ambiguous Maestro results: {platform}')
+    if not files:
+        return None, []
+    commands = json.loads(files[0].read_text())
+    matches = [entry for entry in commands
+               if 'assertScreenshot' in json.dumps(entry.get('command', {}))]
+    if not matches:
+        return None, []
+    result = matches[-1]
+    artifacts = []
+    for item in result.get('artifacts', []):
+        path = item if isinstance(item, str) else item.get('relativePath', item.get('path'))
+        if path:
+            candidate = (files[0].parent / path).resolve()
+            if candidate.is_relative_to(files[0].parent.resolve()) and candidate.is_file():
+                artifacts.append(candidate)
+    return result.get('status'), artifacts
 
 
 def build(downloads, baselines, output, locale):
@@ -64,11 +60,20 @@ def build(downloads, baselines, output, locale):
         if baseline.exists():
             reference = output / f'{stem}-baseline.png'
             reference.write_bytes(baseline.read_bytes())
-            diff = output / f'{stem}-diff.png'
-            section += [compare(reference, current, diff), '',
-                        '| Baseline | Current | Diff (pink = changed) |',
-                        '| --- | --- | --- |',
-                        f'| ![baseline](@@/{reference.name}) | ![current](@@/{current.name}) | ![diff](@@/{diff.name}) |', '']
+            status, artifacts = assertion(downloads, platform)
+            section += [f'Maestro assertScreenshot: {status or "result unavailable"}', '']
+            cells = [f'![baseline](@@/{reference.name})', f'![current](@@/{current.name})']
+            headings = ['Baseline', 'Current']
+            diffs = [path for path in artifacts if path.suffix.lower() == '.png'
+                     and 'diff' in path.name.lower()]
+            if diffs:
+                diff = output / f'{stem}-diff.png'
+                diff.write_bytes(diffs[-1].read_bytes())
+                headings.append('Diff')
+                cells.append(f'![diff](@@/{diff.name})')
+            section += ['| ' + ' | '.join(headings) + ' |',
+                        '| ' + ' | '.join('---' for _ in headings) + ' |',
+                        '| ' + ' | '.join(cells) + ' |', '']
         else:
             section += ['Not compared: no baseline for this OS/locale.', '',
                         f'![current](@@/{current.name})', '']
