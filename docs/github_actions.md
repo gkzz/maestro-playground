@@ -2,9 +2,11 @@
 
 ## CI
 
-PR では `Lint` と `E2E` を実行します。
+PR では `Lint` を実行します。`Test` と `E2E` は `docs/**` と Markdown ファイルだけを変更した PR では起動しません。
 
 `Lint` では workflow、shell script、Maestro flow などの構文を確認します。
+
+`Test` ではスクリーンショットレポート生成処理の Python 単体テストを実行します。対象ファイルを変更した PR、`main` への push、手動実行で起動します。
 
 PR の `E2E` では、Android で `settings` / `wikipedia` / `unicode` の3フローを実行します。手動実行（`workflow_dispatch`）では、`platform` で Android または iOS を選び、選択したプラットフォームで同じ3フローを実行します。
 
