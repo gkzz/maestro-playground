@@ -22,6 +22,8 @@ Maestro CLI のバージョンとテストの実行方法は [.config/mise/confi
 
 ローカル環境のセットアップやテストの実行方法については [DEVELOPMENT.md](./DEVELOPMENT.md) を参照してください。
 
+GitHub Actions の実行や画像比較サマリーについては [github_actions.md](./github_actions.md) を参照してください。
+
 ## Architecture
 
 ローカルと CI で共有している処理や、それぞれのコマンドの関係については [ARCHITECTURE.md](./ARCHITECTURE.md) を参照してください。
