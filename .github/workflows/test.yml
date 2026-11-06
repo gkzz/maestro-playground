@@ -1,0 +1,23 @@
+name: Test
+
+on:
+  pull_request:
+    paths-ignore:
+      - 'docs/**'
+      - '**/*.md'
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  screenshot-report-tests:
+    name: Screenshot report tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Test screenshot report
+        run: python3 -m unittest discover -s e2e -p 'test_screenshot_report.py'
