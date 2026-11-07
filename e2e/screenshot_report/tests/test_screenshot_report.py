@@ -122,6 +122,68 @@ class ScreenshotReportTest(unittest.TestCase):
             self.assertIn('Maestro assertScreenshot: COMPLETED', report)
             self.assertEqual(builder.unavailable, [])
 
+    def test_download_layouts_and_unavailable_results(self):
+        """Single and multiple downloads preserve OS identity and CLI failures."""
+        cases = [
+            ('flat', {'android': 'COMPLETED'}, False),
+            ('flat', {'android': 'FAILED'}, False),
+            ('flat', {'ios': 'COMPLETED'}, False),
+            ('named', {'android': 'COMPLETED', 'ios': 'FAILED'}, False),
+            ('flat', {'android': None}, True),
+            ('flat', {'android': 'malformed'}, True),
+            ('flat', {'android': 'ambiguous'}, True),
+            ('flat', {'android': 'COMPLETED', 'ios': None}, True),
+            ('named', {'android': None, 'ios': 'COMPLETED'}, True),
+        ]
+        for layout, results, unavailable in cases:
+            with self.subTest(layout=layout, results=results):
+                with tempfile.TemporaryDirectory() as directory:
+                    root = Path(directory)
+                    downloads, baselines = root / 'downloads', root / 'baselines'
+                    downloads.mkdir()
+                    baselines.mkdir()
+                    for platform, status in results.items():
+                        artifact = downloads / f'maestro-{platform}-unicode' if layout == 'named' else downloads
+                        flow = artifact / 'session' / platform
+                        flow.mkdir(parents=True)
+                        stem = f'{platform}-unicode-field-ja.png'
+                        (artifact / stem).write_bytes(b'current')
+                        (baselines / stem).write_bytes(b'baseline')
+                        if status is not None:
+                            commands = json.dumps([{
+                                'command': {'assertScreenshotCommand': {}},
+                                'metadata': {'status': status}}])
+                            (flow / 'commands.json').write_text(
+                                '{invalid' if status == 'malformed' else commands)
+                            if status == 'ambiguous':
+                                (flow / 'retry').mkdir()
+                                (flow / 'retry' / 'commands.json').write_text(commands)
+                    output = root / 'report'
+                    summary = root / 'job-summary.md'
+                    argv = ['cli.py', '--downloads', str(downloads),
+                            '--baselines', str(baselines), '--output', str(output),
+                            '--locale', 'ja', '--source-run', '123']
+                    with patch('sys.argv', argv), patch.dict('os.environ', {
+                            'GITHUB_REPOSITORY': 'owner/repo',
+                            'GITHUB_STEP_SUMMARY': str(summary)}), patch('builtins.print'):
+                        if unavailable:
+                            with self.assertRaisesRegex(SystemExit, 'result unavailable'):
+                                main()
+                        else:
+                            main()
+                    report = summary.read_text()
+                    self.assertEqual(report, (output / 'summary.md').read_text())
+                    if not unavailable:
+                        for platform, status in results.items():
+                            section = report.split(f'### {platform} / ja')[1].split('### ')[0]
+                            self.assertIn(f'Maestro assertScreenshot: {status}', section)
+                    else:
+                        self.assertIn('result unavailable', report)
+                    if layout == 'flat':
+                        builder = ScreenshotReport(downloads, baselines, output, 'ja')
+                        other = 'android' if set(results) == {'ios'} else 'ios'
+                        self.assertEqual(builder.assertion(other), (None, []))
+
     def test_closed_pr_images_are_removed_early(self):
         """Closing a PR removes only images associated with that PR."""
         now = datetime(2026, 11, 3, 12, tzinfo=timezone.utc)

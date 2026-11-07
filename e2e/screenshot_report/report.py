@@ -12,7 +12,18 @@ class ScreenshotReport:
 
     def assertion(self, platform):
         """Return the last executed Maestro screenshot assertion and its artifacts."""
-        files = list((self.downloads / f'maestro-{platform}-unicode').rglob('commands.json'))
+        result_root = self.downloads / f'maestro-{platform}-unicode'
+        if not result_root.is_dir():
+            # gh extracts a single artifact directly into the download directory.
+            # Only accept that layout when captures identify this platform alone.
+            if any(self.downloads.glob('maestro-*-unicode')):
+                return None, []
+            platforms = {os for os in ('android', 'ios')
+                         if any(self.downloads.rglob(f'{os}-unicode-field-{self.locale}.png'))}
+            if platforms != {platform}:
+                return None, []
+            result_root = self.downloads
+        files = list(result_root.rglob('commands.json'))
         if len(files) > 1:
             raise ValueError(f'Ambiguous Maestro results: {platform}')
         if not files:
