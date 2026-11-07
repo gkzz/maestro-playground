@@ -73,8 +73,17 @@ until [[ "$("$adb_cmd" -s "$device_serial" shell getprop sys.boot_completed 2>/d
 done
 
 echo "Restarting adbd as root to apply locale ${device_locale}."
-if ! "$adb_cmd" -s "$device_serial" root; then
-  echo "Android Emulator does not allow adbd to run as root." >&2
+root_started=false
+for attempt in 1 2 3 4 5; do
+  if "$adb_cmd" -s "$device_serial" root; then
+    root_started=true
+    break
+  fi
+  echo "adb root could not connect (attempt ${attempt}/5); retrying." >&2
+  sleep 2
+done
+if [[ "$root_started" != true ]]; then
+  echo "Could not restart Android Emulator adbd as root after five attempts." >&2
   tail -n 200 "$emulator_log" >&2 || true
   exit 1
 fi
