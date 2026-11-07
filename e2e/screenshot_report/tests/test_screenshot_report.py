@@ -12,7 +12,10 @@ from e2e.screenshot_report.cli import main
 
 
 class ScreenshotReportTest(unittest.TestCase):
+    """Verify report generation, CLI failure handling, and image cleanup."""
+
     def test_github_api_updates_ref_with_patch(self):
+        """Updating the image branch sends the requested SHA and force flag."""
         with patch('e2e.screenshot_report.github_api.subprocess.run') as run:
             run.return_value.stdout = '{}'
             GitHubApi().update_ref('repos/owner/repo/git/refs/heads/screenshot-reports',
@@ -22,6 +25,7 @@ class ScreenshotReportTest(unittest.TestCase):
                          {'sha': 'new-commit', 'force': True})
 
     def test_maestro_result_and_diff_are_reported_without_comparing_images(self):
+        """The summary uses Maestro's failure and Diff without comparing pixels."""
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             downloads = root / 'downloads'
@@ -44,6 +48,7 @@ class ScreenshotReportTest(unittest.TestCase):
                              b'maestro diff')
 
     def test_absent_capture_and_absent_baseline_are_explicit(self):
+        """Missing captures, missing baselines, and missing results stay distinct."""
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             downloads, baselines = root / 'downloads', root / 'baselines'
@@ -62,6 +67,7 @@ class ScreenshotReportTest(unittest.TestCase):
             self.assertEqual(builder.unavailable, ['ios: Maestro assertion result unavailable'])
 
     def test_unavailable_result_keeps_summary_and_fails_job(self):
+        """A missing assertion fails the CLI after writing the summary and images."""
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             downloads, baselines = root / 'downloads', root / 'baselines'
@@ -83,6 +89,7 @@ class ScreenshotReportTest(unittest.TestCase):
             self.assertTrue((output / 'ios-unicode-field-ja-current.png').exists())
 
     def test_malformed_maestro_result_is_unavailable(self):
+        """An unreadable commands.json becomes an unavailable assertion result."""
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             flow = root / 'downloads' / 'maestro-ios-unicode' / 'flow'
@@ -98,6 +105,7 @@ class ScreenshotReportTest(unittest.TestCase):
             self.assertEqual(builder.unavailable, ['ios: Maestro assertion result unavailable'])
 
     def test_completed_maestro_result_is_available(self):
+        """Maestro's real success status is accepted as a known result."""
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             flow = root / 'downloads' / 'maestro-ios-unicode' / 'flow'
@@ -115,6 +123,7 @@ class ScreenshotReportTest(unittest.TestCase):
             self.assertEqual(builder.unavailable, [])
 
     def test_closed_pr_images_are_removed_early(self):
+        """Closing a PR removes only images associated with that PR."""
         now = datetime(2026, 11, 3, 12, tzinfo=timezone.utc)
         fresh = int((now - timedelta(hours=1)).timestamp())
         entries = [
@@ -149,6 +158,7 @@ class ScreenshotReportTest(unittest.TestCase):
             'repos/owner/repo/git/refs/heads/screenshot-reports', 'new-commit', force=True)
 
     def test_cleanup_deletes_only_images_older_than_one_day(self):
+        """Scheduled cleanup expires old images and preserves recent images."""
         now = datetime(2026, 11, 3, 12, tzinfo=timezone.utc)
         old = int((now - timedelta(days=1, minutes=1)).timestamp())
         fresh = int((now - timedelta(hours=23)).timestamp())
