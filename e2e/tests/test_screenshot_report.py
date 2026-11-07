@@ -5,8 +5,9 @@ from unittest.mock import patch
 import unittest
 from pathlib import Path
 
-from e2e.screenshot_report import ScreenshotReport, ScreenshotReportStore
-from e2e.cli import main
+from e2e.screenshot_report.report import ScreenshotReport
+from e2e.screenshot_report.store import ScreenshotReportStore
+from e2e.screenshot_report_cli import main
 
 
 class ScreenshotReportTest(unittest.TestCase):
@@ -60,7 +61,7 @@ class ScreenshotReportTest(unittest.TestCase):
             (baselines / 'ios-unicode-field-ja.png').write_bytes(b'baseline')
             output = root / 'report'
             summary = root / 'job-summary.md'
-            argv = ['cli.py', '--downloads', str(downloads),
+            argv = ['screenshot_report_cli.py', '--downloads', str(downloads),
                     '--baselines', str(baselines), '--output', str(output),
                     '--locale', 'ja', '--source-run', '123']
             with patch('sys.argv', argv), patch.dict('os.environ', {
@@ -130,8 +131,8 @@ class ScreenshotReportTest(unittest.TestCase):
                 return {'sha': 'new-commit'}
             raise AssertionError(path)
 
-        with patch('e2e.screenshot_report.api', side_effect=fake_api), \
-                patch('e2e.screenshot_report.subprocess.run') as run:
+        with patch('e2e.screenshot_report.store.api', side_effect=fake_api), \
+                patch('e2e.screenshot_report.store.subprocess.run') as run:
             self.assertEqual(ScreenshotReportStore('owner/repo').cleanup(now=now, closed_pr=34), [entries[0]['path']])
         self.assertTrue(json.loads(run.call_args.kwargs['input'])['force'])
 
@@ -162,8 +163,8 @@ class ScreenshotReportTest(unittest.TestCase):
                 return {'sha': 'new-commit'}
             raise AssertionError(path)
 
-        with patch('e2e.screenshot_report.api', side_effect=fake_api), \
-                patch('e2e.screenshot_report.subprocess.run') as run:
+        with patch('e2e.screenshot_report.store.api', side_effect=fake_api), \
+                patch('e2e.screenshot_report.store.subprocess.run') as run:
             removed = ScreenshotReportStore('owner/repo').cleanup(now=now)
         self.assertEqual(removed, [entries[0]['path'], entries[2]['path']])
         deletion = next(payload for path, payload in calls if path.endswith('/git/trees'))

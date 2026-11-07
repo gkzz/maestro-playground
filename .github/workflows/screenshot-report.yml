@@ -47,7 +47,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           SOURCE_RUN_ID: ${{ inputs.run_id }}
         run: |
-          python3 -m e2e.cli \
+          python3 -m e2e.screenshot_report_cli \
             --downloads "$RUNNER_TEMP/captures" \
             --output artifacts/screenshot-report \
             --locale "$E2E_LOCALE" --source-run "$SOURCE_RUN_ID" --publish

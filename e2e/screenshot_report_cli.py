@@ -4,7 +4,9 @@ from datetime import datetime, timezone
 import os
 from pathlib import Path
 
-from e2e.screenshot_report import api, ScreenshotReport, ScreenshotReportStore
+from e2e.screenshot_report.api import api
+from e2e.screenshot_report.report import ScreenshotReport
+from e2e.screenshot_report.store import ScreenshotReportStore
 
 
 def main():
