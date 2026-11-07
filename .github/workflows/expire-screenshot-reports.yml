@@ -29,7 +29,7 @@ jobs:
           CLOSED_PR: ${{ github.event.pull_request.number }}
         run: |
           if [ -n "$CLOSED_PR" ]; then
-            python3 e2e/screenshot_report.py --cleanup --closed-pr "$CLOSED_PR"
+            python3 -m e2e.cli --cleanup --closed-pr "$CLOSED_PR"
           else
-            python3 e2e/screenshot_report.py --cleanup
+            python3 -m e2e.cli --cleanup
           fi

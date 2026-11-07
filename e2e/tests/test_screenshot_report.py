@@ -5,7 +5,8 @@ from unittest.mock import patch
 import unittest
 from pathlib import Path
 
-from screenshot_report import build, cleanup
+from e2e.screenshot_report import ScreenshotReport, ScreenshotReportStore
+from e2e.cli import main
 
 
 class ScreenshotReportTest(unittest.TestCase):
@@ -25,7 +26,7 @@ class ScreenshotReportTest(unittest.TestCase):
                  'metadata': {'status': 'FAILED', 'artifacts': [
                      {'type': 'SCREENSHOT_DIFF',
                       'path': 'assert-screenshot/example-diff.png'}]}}]))
-            report = build(downloads, root / 'baselines', root / 'report', 'ja')
+            report = ScreenshotReport(downloads, root / 'baselines', root / 'report', 'ja').build()
             self.assertIn('Maestro assertScreenshot: FAILED', report)
             self.assertIn('![diff]', report)
             self.assertEqual((root / 'report' / 'ios-unicode-field-ja-diff.png').read_bytes(),
@@ -38,14 +39,69 @@ class ScreenshotReportTest(unittest.TestCase):
             downloads.mkdir()
             baselines.mkdir()
             (downloads / 'ios-unicode-field-ja.png').write_bytes(b'current')
-            report = build(downloads, baselines, root / 'report', 'ja')
+            report = ScreenshotReport(downloads, baselines, root / 'report', 'ja').build()
             self.assertIn('No capture available', report)
             self.assertIn('Not compared: no baseline', report)
             self.assertNotIn('PASS', report)
             (baselines / 'ios-unicode-field-ja.png').write_bytes(b'baseline')
-            report = build(downloads, baselines, root / 'report2', 'ja')
+            builder = ScreenshotReport(downloads, baselines, root / 'report2', 'ja')
+            report = builder.build()
             self.assertIn('result unavailable', report)
             self.assertNotIn('![diff]', report)
+            self.assertEqual(builder.unavailable, ['ios: Maestro assertion result unavailable'])
+
+    def test_unavailable_result_keeps_summary_and_fails_job(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            downloads, baselines = root / 'downloads', root / 'baselines'
+            downloads.mkdir()
+            baselines.mkdir()
+            (downloads / 'ios-unicode-field-ja.png').write_bytes(b'current')
+            (baselines / 'ios-unicode-field-ja.png').write_bytes(b'baseline')
+            output = root / 'report'
+            summary = root / 'job-summary.md'
+            argv = ['cli.py', '--downloads', str(downloads),
+                    '--baselines', str(baselines), '--output', str(output),
+                    '--locale', 'ja', '--source-run', '123']
+            with patch('sys.argv', argv), patch.dict('os.environ', {
+                    'GITHUB_REPOSITORY': 'owner/repo', 'GITHUB_STEP_SUMMARY': str(summary)}):
+                with self.assertRaisesRegex(SystemExit, 'result unavailable'):
+                    main()
+            self.assertIn('result unavailable', summary.read_text())
+            self.assertIn('result unavailable', (output / 'summary.md').read_text())
+            self.assertTrue((output / 'ios-unicode-field-ja-current.png').exists())
+
+    def test_malformed_maestro_result_is_unavailable(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            flow = root / 'downloads' / 'maestro-ios-unicode' / 'flow'
+            flow.mkdir(parents=True)
+            (flow / 'commands.json').write_text('{invalid')
+            (root / 'downloads' / 'ios-unicode-field-ja.png').write_bytes(b'current')
+            baselines = root / 'baselines'
+            baselines.mkdir()
+            (baselines / 'ios-unicode-field-ja.png').write_bytes(b'baseline')
+            builder = ScreenshotReport(root / 'downloads', baselines, root / 'report', 'ja')
+            report = builder.build()
+            self.assertIn('result unavailable', report)
+            self.assertEqual(builder.unavailable, ['ios: Maestro assertion result unavailable'])
+
+    def test_completed_maestro_result_is_available(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            flow = root / 'downloads' / 'maestro-ios-unicode' / 'flow'
+            flow.mkdir(parents=True)
+            (flow / 'commands.json').write_text(json.dumps([
+                {'command': {'assertScreenshotCommand': {}},
+                 'metadata': {'status': 'COMPLETED'}}]))
+            (root / 'downloads' / 'ios-unicode-field-ja.png').write_bytes(b'current')
+            baselines = root / 'baselines'
+            baselines.mkdir()
+            (baselines / 'ios-unicode-field-ja.png').write_bytes(b'baseline')
+            builder = ScreenshotReport(root / 'downloads', baselines, root / 'report', 'ja')
+            report = builder.build()
+            self.assertIn('Maestro assertScreenshot: COMPLETED', report)
+            self.assertEqual(builder.unavailable, [])
 
     def test_closed_pr_images_are_removed_early(self):
         now = datetime(2026, 11, 3, 12, tzinfo=timezone.utc)
@@ -74,9 +130,9 @@ class ScreenshotReportTest(unittest.TestCase):
                 return {'sha': 'new-commit'}
             raise AssertionError(path)
 
-        with patch('screenshot_report.api', side_effect=fake_api), \
-                patch('screenshot_report.subprocess.run') as run:
-            self.assertEqual(cleanup('owner/repo', now=now, closed_pr=34), [entries[0]['path']])
+        with patch('e2e.screenshot_report.api', side_effect=fake_api), \
+                patch('e2e.screenshot_report.subprocess.run') as run:
+            self.assertEqual(ScreenshotReportStore('owner/repo').cleanup(now=now, closed_pr=34), [entries[0]['path']])
         self.assertTrue(json.loads(run.call_args.kwargs['input'])['force'])
 
     def test_cleanup_deletes_only_images_older_than_one_day(self):
@@ -106,9 +162,9 @@ class ScreenshotReportTest(unittest.TestCase):
                 return {'sha': 'new-commit'}
             raise AssertionError(path)
 
-        with patch('screenshot_report.api', side_effect=fake_api), \
-                patch('screenshot_report.subprocess.run') as run:
-            removed = cleanup('owner/repo', now=now)
+        with patch('e2e.screenshot_report.api', side_effect=fake_api), \
+                patch('e2e.screenshot_report.subprocess.run') as run:
+            removed = ScreenshotReportStore('owner/repo').cleanup(now=now)
         self.assertEqual(removed, [entries[0]['path'], entries[2]['path']])
         deletion = next(payload for path, payload in calls if path.endswith('/git/trees'))
         self.assertEqual([item['sha'] for item in deletion['tree']], [None, None])
