@@ -9,8 +9,27 @@ from .report import ScreenshotReport
 from .store import ScreenshotReportStore
 
 
+def usage():
+    """Show the commands used by the screenshot report workflows."""
+    return """Examples (run from the repository root):
+  GITHUB_REPOSITORY=owner/repo python3 -m e2e.screenshot_report.cli \\
+    --downloads /tmp/captures --output artifacts/screenshot-report \\
+    --locale ja --source-run 123
+
+  # Publish images for a GitHub Actions Job Summary (requires GITHUB_RUN_ID and
+  # GITHUB_RUN_ATTEMPT in addition to GITHUB_REPOSITORY):
+  python3 -m e2e.screenshot_report.cli \\
+    --downloads /tmp/captures --output artifacts/screenshot-report \\
+    --locale ja --source-run 123 --publish
+
+  GITHUB_REPOSITORY=owner/repo python3 -m e2e.screenshot_report.cli --cleanup
+  GITHUB_REPOSITORY=owner/repo python3 -m e2e.screenshot_report.cli \\
+    --cleanup --closed-pr 123"""
+
+
 def main():
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(
+        epilog=usage(), formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument('--downloads', type=Path)
     parser.add_argument('--baselines', type=Path, default=Path('e2e/baselines'))
     parser.add_argument('--output', type=Path)
