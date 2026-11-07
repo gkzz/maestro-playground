@@ -33,6 +33,10 @@ cd "$source_dir"
 flutter pub get
 case "$platform" in
   android)
+    # The pinned demo app uses Gradle 8.12, below this Flutter version's minimum.
+    wrapper=android/gradle/wrapper/gradle-wrapper.properties
+    sed 's/gradle-8\.12-all\.zip/gradle-8.14.3-all.zip/' "$wrapper" > "$wrapper.tmp"
+    mv "$wrapper.tmp" "$wrapper"
     flutter build apk
     cp build/app/outputs/flutter-apk/app-release.apk "$script_dir/apps/demo_app.apk"
     # Release build memory before the emulator test starts.
