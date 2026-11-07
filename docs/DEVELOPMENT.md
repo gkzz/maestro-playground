@@ -77,7 +77,7 @@ make test-android-wikipedia
 
 Flutter は [`.config/flutter/mise.toml`](../.config/flutter/mise.toml) に指定したバージョンを `make install-flutter` で導入し、Java 17.0.21+9 を用意します。配布 URL と SHA-256 は同じディレクトリの `mise.lock` で固定します。Makefile は `mise exec --locked flutter` でこの SDK を選択し、ビルドスクリプトもバージョン不一致なら停止します。SDK セットアップ時に `NDK_VERSION` を指定すると、ビルド用 NDK も同時にインストールします。`settings` / `wikipedia` では指定不要です。
 
-Renovate は mise の標準対応で Flutter の安定版バージョンと lockfile を同時更新します。Flutter の自動マージは無効です。更新 PR では Android の3フローに加え、同じブランチで `workflow_dispatch` の `ios` を実行し、iOS の3フローも成功してからマージします。Flutter 更新で必要な SDK / NDK が変わった場合は、その PR で設定も調整します。Android API レベルは手動で選ぶテスト対象とし、Emulator 本体の固定・Renovate 管理は別 PR で扱います。
+Flutter の更新 PR で確認する内容は [github_actions.md](./github_actions.md) を参照してください。
 
 ```sh
 API_LEVEL=36 ARCH=x86_64 TARGET=google_apis NDK_VERSION=28.2.13676358 make setup-android-sdk
@@ -113,19 +113,7 @@ artifacts/maestro/ios/<flow>
 
 `artifacts/` は git では管理しません。
 
-CI でも同じディレクトリ構成を使用します。
-
-テスト結果が CI でどのように保存されるかについては [ARCHITECTURE.md](./ARCHITECTURE.md) の `Artifacts` を参照してください。
-
-## CI
-
-Pull Request では `Lint` と `E2E` を実行します。
-
-`Lint` では workflow、shell script、Maestro flow などの構文を確認します。
-
-PR の `E2E` では Android の `settings` / `wikipedia` / `unicode` を実行します。`workflow_dispatch` では `platform` に応じて Android / iOS を選択し、各プラットフォームの同じ3フローを実行します。
-
-CI の構成については [ARCHITECTURE.md](./ARCHITECTURE.md) の `CI` を参照してください。
+GitHub Actions での実行と artifact の保存については [github_actions.md](./github_actions.md) を参照してください。
 
 ## ロケール別のキャプチャと画像比較
 
@@ -198,12 +186,9 @@ E2E_LOCALE=ja make test-android-unicode
 
 `e2e/baselines/<android|ios>-unicode-field-<ja|en>.png` が存在すると、
 同じ OS・ロケールの基準画像と入力欄を `assertScreenshot` で比較します。
-Summary 用の入力欄を撮影した後、アプリを開き直して保存済みの文字列を確認し、
-Maestro の判定用画像を別途撮影します。両者は異なる時点の画像です。
-日本語の基準画像は [Android CI 実行 #41563686593](https://github.com/gkzz/maestro-playground/actions/runs/41563686593) と
-[iOS CI 実行 #41559360999](https://github.com/gkzz/maestro-playground/actions/runs/41559360999) のキャプチャから作成しました。
-基準画像をリポジトリに含めると、CI の Flutter（`unicode`）ジョブでも
-自動で比較します。基準画像がまだない組み合わせは撮影のみです。
+入力欄の `takeScreenshot` の直後に `assertScreenshot` を実行します。
+この間にアプリを再起動したり、入力画面を開き直したりしません。
+基準画像がまだない組み合わせは撮影のみです。
 基準画像は自動更新しません。更新時は画像を確認して差し替えてください。
 
 別の基準画像を使う場合は、既存の `E2E_SCREENSHOT_BASELINE` を指定します。
@@ -221,37 +206,6 @@ E2E_LOCALE=ja E2E_SCREENSHOT_BASELINE="$PWD/local/baselines/android-unicode-fiel
 
 この画面のラベルは英語固定です。ロケール名を含むキャプチャや入力欄の比較は、
 端末の言語が正しく設定されたこと自体の検証にはなりません。
-CI では既存の Emulator / Simulator セットアップが `E2E_LOCALE` を適用します。
 ローカルでも同じロケールで端末をセットアップしてから実行してください。
 
-
-### GitHub Actions の画像比較サマリー
-
-同じリポジトリの PR と手動実行では、E2E のテストジョブの後にデフォルトブランチの
-`Screenshot report` workflow を呼び出し、同じ E2E 実行内にサマリーを生成します。
-Summary に OS・ロケールごとの基準画像、今回の入力欄、差分画像を横並びで表示し、
-一致率、差分ピクセル数、画像サイズを記載します。差分ピクセルはピンクで表示します。
-画面全体のキャプチャも折りたたみ内で表示します。
-
-画像を Summary 内で表示するため、専用の `screenshot-reports` ブランチに保存します。
-Summary はこのブランチの URL を参照します。画像は実行から1日経過後、
-定期実行の `Expire screenshot reports` workflow がブランチから削除します。
-PR のクローズ時には、その PR の E2E 実行から作られた画像を早めに削除します。
-Maestro の artifact と比較レポートの artifact も `retention-days: 1` です。
-定期実行の遅延により、画像が消える時刻は24時間ちょうどとは限りません。
-ブランチは期限切れ画像を除いた履歴に作り直します。ただし GitHub の内部キャッシュや
-到達不能な Git オブジェクトの物理削除時刻までは制御できません。
-画像の公開と削除には専用ジョブに `contents: write` を付与します。PR の E2E ジョブは
-書き込み権限を持たず、公開ジョブはデフォルトブランチのコードを実行します。
-fork からの PR では画像公開ジョブを実行せず、通常の Maestro artifact を使用します。
-
-基準画像がない場合は未比較、キャプチャがない場合は取得できなかった旨を表示します。
-Summary のピクセル比較は結果の可視化用です。E2E の成否は元の Maestro ジョブで確認してください。
-初回の基準画像と同じ取得元を指定したレポートは、同一画像の比較となります。
-
-基準画像にはデフォルトブランチの画像を使います。
-
-Android の Maestro 実行開始時に `deviceInfo` 取得中のデバイスサーバー切断が起きた場合、
-CI は1回だけ再実行します。初回の `maestro.log` は
-`maestro-first-attempt.log` として artifact に残します。
-画像の不一致や他のテスト失敗では再実行しません。
+GitHub Actions の画像比較サマリーについては [github_actions.md](./github_actions.md) を参照してください。

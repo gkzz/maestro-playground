@@ -27,12 +27,6 @@ jobs:
           ref: ${{ github.event.repository.default_branch }}
           persist-credentials: false
 
-      - name: Install image comparison dependency
-        run: python3 -m pip install -r e2e/requirements.txt
-
-      - name: Test image comparison
-        run: python3 -m unittest discover -s e2e -p 'test_screenshot_report.py'
-
       - name: Download Flutter captures
         continue-on-error: true
         env:

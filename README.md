@@ -18,7 +18,8 @@ Maestro Flow から OS 標準の「設定」アプリと、追加のテスト対
 │   │   └── setup-mise
 │   └── workflows
 │       ├── e2e.yml
-│       └── lint.yml
+│       ├── lint.yml
+│       └── test.yml
 ├── .gitignore
 ├── .maestro
 │   ├── settings

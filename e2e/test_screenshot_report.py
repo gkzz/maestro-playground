@@ -5,34 +5,31 @@ from unittest.mock import patch
 import unittest
 from pathlib import Path
 
-from PIL import Image
-from screenshot_report import build, compare, cleanup
+from screenshot_report import build, cleanup
 
 
 class ScreenshotReportTest(unittest.TestCase):
-    def test_exact_match_and_single_changed_pixel(self):
+    def test_maestro_result_and_diff_are_reported_without_comparing_images(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
-            baseline, current, diff = [root / name for name in ('base.png', 'current.png', 'diff.png')]
-            image = Image.new('RGBA', (10, 10), 'white')
-            image.save(baseline)
-            image.save(current)
-            self.assertIn('PASS: 100.0000%', compare(baseline, current, diff))
-            image.putpixel((3, 4), (0, 0, 0, 255))
-            image.save(current)
-            self.assertIn('FAIL: 99.0000% match; 1 changed pixels', compare(baseline, current, diff))
-            with Image.open(diff) as result:
-                self.assertEqual(result.getpixel((3, 4)), (255, 0, 80))
-                self.assertEqual(result.getpixel((0, 0)), (255, 255, 255))
-
-    def test_alpha_changes_and_different_sizes_fail(self):
-        with tempfile.TemporaryDirectory() as directory:
-            baseline, current, diff = [Path(directory) / name for name in ('base.png', 'current.png', 'diff.png')]
-            Image.new('RGBA', (2, 2), (0, 0, 0, 0)).save(baseline)
-            Image.new('RGBA', (2, 2), (0, 0, 0, 255)).save(current)
-            self.assertIn('FAIL: 0.0000%', compare(baseline, current, diff))
-            Image.new('RGBA', (3, 2), (0, 0, 0, 0)).save(current)
-            self.assertIn('FAIL:', compare(baseline, current, diff))
+            downloads = root / 'downloads'
+            flow = downloads / 'maestro-ios-unicode' / 'session' / 'flow'
+            flow.mkdir(parents=True)
+            (downloads / 'ios-unicode-field-ja.png').write_bytes(b'current')
+            (root / 'baselines').mkdir()
+            (root / 'baselines' / 'ios-unicode-field-ja.png').write_bytes(b'baseline')
+            (flow / 'assert-screenshot').mkdir()
+            (flow / 'assert-screenshot' / 'example-diff.png').write_bytes(b'maestro diff')
+            (flow / 'commands.json').write_text(json.dumps([
+                {'command': {'assertScreenshotCommand': {}},
+                 'metadata': {'status': 'FAILED', 'artifacts': [
+                     {'type': 'SCREENSHOT_DIFF',
+                      'path': 'assert-screenshot/example-diff.png'}]}}]))
+            report = build(downloads, root / 'baselines', root / 'report', 'ja')
+            self.assertIn('Maestro assertScreenshot: FAILED', report)
+            self.assertIn('![diff]', report)
+            self.assertEqual((root / 'report' / 'ios-unicode-field-ja-diff.png').read_bytes(),
+                             b'maestro diff')
 
     def test_absent_capture_and_absent_baseline_are_explicit(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -40,13 +37,15 @@ class ScreenshotReportTest(unittest.TestCase):
             downloads, baselines = root / 'downloads', root / 'baselines'
             downloads.mkdir()
             baselines.mkdir()
-            Image.new('RGB', (2, 2), 'white').save(downloads / 'ios-unicode-field-ja.png')
+            (downloads / 'ios-unicode-field-ja.png').write_bytes(b'current')
             report = build(downloads, baselines, root / 'report', 'ja')
             self.assertIn('No capture available', report)
             self.assertIn('Not compared: no baseline', report)
             self.assertNotIn('PASS', report)
-            Image.new('RGB', (2, 2), 'white').save(baselines / 'ios-unicode-field-ja.png')
-            self.assertIn('PASS: 100.0000%', build(downloads, baselines, root / 'report2', 'ja'))
+            (baselines / 'ios-unicode-field-ja.png').write_bytes(b'baseline')
+            report = build(downloads, baselines, root / 'report2', 'ja')
+            self.assertIn('result unavailable', report)
+            self.assertNotIn('![diff]', report)
 
     def test_closed_pr_images_are_removed_early(self):
         now = datetime(2026, 11, 3, 12, tzinfo=timezone.utc)
