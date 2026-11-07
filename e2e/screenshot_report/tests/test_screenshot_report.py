@@ -5,15 +5,15 @@ from unittest.mock import Mock, patch
 import unittest
 from pathlib import Path
 
-from e2e.screenshot_report.classes.report import ScreenshotReport
-from e2e.screenshot_report.classes.store import ScreenshotReportStore
-from e2e.screenshot_report.classes.github_api import GitHubApi
+from e2e.screenshot_report.report import ScreenshotReport
+from e2e.screenshot_report.store import ScreenshotReportStore
+from e2e.screenshot_report.github_api import GitHubApi
 from e2e.screenshot_report.cli import main
 
 
 class ScreenshotReportTest(unittest.TestCase):
     def test_github_api_updates_ref_with_patch(self):
-        with patch('e2e.screenshot_report.classes.github_api.subprocess.run') as run:
+        with patch('e2e.screenshot_report.github_api.subprocess.run') as run:
             run.return_value.stdout = '{}'
             GitHubApi().update_ref('repos/owner/repo/git/refs/heads/screenshot-reports',
                                    'new-commit', force=True)

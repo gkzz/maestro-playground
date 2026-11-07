@@ -4,9 +4,9 @@ from datetime import datetime, timezone
 import os
 from pathlib import Path
 
-from .classes.github_api import GitHubApi
-from .classes.report import ScreenshotReport
-from .classes.store import ScreenshotReportStore
+from .github_api import GitHubApi
+from .report import ScreenshotReport
+from .store import ScreenshotReportStore
 
 
 def main():
