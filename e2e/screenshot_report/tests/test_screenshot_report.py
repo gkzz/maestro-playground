@@ -1,16 +1,26 @@
 import tempfile
 import json
 from datetime import datetime, timezone, timedelta
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 import unittest
 from pathlib import Path
 
-from e2e.screenshot_report.report import ScreenshotReport
-from e2e.screenshot_report.store import ScreenshotReportStore
-from e2e.screenshot_report_cli import main
+from e2e.screenshot_report.classes.report import ScreenshotReport
+from e2e.screenshot_report.classes.store import ScreenshotReportStore
+from e2e.screenshot_report.classes.github_api import GitHubApi
+from e2e.screenshot_report.cli import main
 
 
 class ScreenshotReportTest(unittest.TestCase):
+    def test_github_api_updates_ref_with_patch(self):
+        with patch('e2e.screenshot_report.classes.github_api.subprocess.run') as run:
+            run.return_value.stdout = '{}'
+            GitHubApi().update_ref('repos/owner/repo/git/refs/heads/screenshot-reports',
+                                   'new-commit', force=True)
+        self.assertEqual(run.call_args.args[0][-4:], ['--method', 'PATCH', '--input', '-'])
+        self.assertEqual(json.loads(run.call_args.kwargs['input']),
+                         {'sha': 'new-commit', 'force': True})
+
     def test_maestro_result_and_diff_are_reported_without_comparing_images(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -61,7 +71,7 @@ class ScreenshotReportTest(unittest.TestCase):
             (baselines / 'ios-unicode-field-ja.png').write_bytes(b'baseline')
             output = root / 'report'
             summary = root / 'job-summary.md'
-            argv = ['screenshot_report_cli.py', '--downloads', str(downloads),
+            argv = ['cli.py', '--downloads', str(downloads),
                     '--baselines', str(baselines), '--output', str(output),
                     '--locale', 'ja', '--source-run', '123']
             with patch('sys.argv', argv), patch.dict('os.environ', {
@@ -131,10 +141,12 @@ class ScreenshotReportTest(unittest.TestCase):
                 return {'sha': 'new-commit'}
             raise AssertionError(path)
 
-        with patch('e2e.screenshot_report.store.api', side_effect=fake_api), \
-                patch('e2e.screenshot_report.store.subprocess.run') as run:
-            self.assertEqual(ScreenshotReportStore('owner/repo').cleanup(now=now, closed_pr=34), [entries[0]['path']])
-        self.assertTrue(json.loads(run.call_args.kwargs['input'])['force'])
+        api = Mock()
+        api.request.side_effect = fake_api
+        self.assertEqual(ScreenshotReportStore('owner/repo', api).cleanup(now=now, closed_pr=34),
+                         [entries[0]['path']])
+        api.update_ref.assert_called_once_with(
+            'repos/owner/repo/git/refs/heads/screenshot-reports', 'new-commit', force=True)
 
     def test_cleanup_deletes_only_images_older_than_one_day(self):
         now = datetime(2026, 11, 3, 12, tzinfo=timezone.utc)
@@ -163,13 +175,14 @@ class ScreenshotReportTest(unittest.TestCase):
                 return {'sha': 'new-commit'}
             raise AssertionError(path)
 
-        with patch('e2e.screenshot_report.store.api', side_effect=fake_api), \
-                patch('e2e.screenshot_report.store.subprocess.run') as run:
-            removed = ScreenshotReportStore('owner/repo').cleanup(now=now)
+        api = Mock()
+        api.request.side_effect = fake_api
+        removed = ScreenshotReportStore('owner/repo', api).cleanup(now=now)
         self.assertEqual(removed, [entries[0]['path'], entries[2]['path']])
         deletion = next(payload for path, payload in calls if path.endswith('/git/trees'))
         self.assertEqual([item['sha'] for item in deletion['tree']], [None, None])
-        run.assert_called_once()
+        api.update_ref.assert_called_once_with(
+            'repos/owner/repo/git/refs/heads/screenshot-reports', 'new-commit', force=True)
 
 
 if __name__ == '__main__':

@@ -1,29 +1,29 @@
 """Publish and expire screenshot report images."""
 import base64
 from datetime import datetime, timezone, timedelta
-import json
 import subprocess
 from urllib.parse import quote
 
-from .api import api
+from .github_api import GitHubApi
 
 
 class ScreenshotReportStore:
-    def __init__(self, repository):
+    def __init__(self, repository, api=None):
         self.repository = repository
+        self.api = api or GitHubApi()
 
     def publish(self, output, directory):
         branch = 'screenshot-reports'
         root = f'repos/{self.repository}'
         try:
-            parent = api(f'{root}/git/ref/heads/{branch}')['object']['sha']
+            parent = self.api.request(f'{root}/git/ref/heads/{branch}')['object']['sha']
         except subprocess.CalledProcessError as error:
             if '404' not in error.stderr:
                 raise
             parent = None
         tree = []
         for path in sorted(output.glob('*.png')):
-            blob = api(f'{root}/git/blobs', {
+            blob = self.api.request(f'{root}/git/blobs', {
                 'content': base64.b64encode(path.read_bytes()).decode(), 'encoding': 'base64'})
             tree.append({'path': f'{directory}/{path.name}', 'mode': '100644',
                          'type': 'blob', 'sha': blob['sha']})
@@ -31,17 +31,15 @@ class ScreenshotReportStore:
             return None
         payload = {'tree': tree}
         if parent:
-            payload['base_tree'] = api(f'{root}/git/commits/{parent}')['tree']['sha']
-        tree_sha = api(f'{root}/git/trees', payload)['sha']
-        commit = api(f'{root}/git/commits', {
+            payload['base_tree'] = self.api.request(f'{root}/git/commits/{parent}')['tree']['sha']
+        tree_sha = self.api.request(f'{root}/git/trees', payload)['sha']
+        commit = self.api.request(f'{root}/git/commits', {
             'message': f'Screenshot report {directory}', 'tree': tree_sha,
             'parents': [parent] if parent else []})['sha']
         if parent:
-            subprocess.run(['gh', 'api', f'{root}/git/refs/heads/{branch}', '--method', 'PATCH',
-                            '--input', '-'], input=json.dumps({'sha': commit, 'force': False}),
-                           text=True, capture_output=True, check=True)
+            self.api.update_ref(f'{root}/git/refs/heads/{branch}', commit, force=False)
         else:
-            api(f'{root}/git/refs', {'ref': f'refs/heads/{branch}', 'sha': commit})
+            self.api.request(f'{root}/git/refs', {'ref': f'refs/heads/{branch}', 'sha': commit})
         return f'https://raw.githubusercontent.com/{self.repository}/{branch}/{quote(directory)}'
 
     def cleanup(self, *, now=None, closed_pr=None):
@@ -49,13 +47,13 @@ class ScreenshotReportStore:
         root = f'repos/{self.repository}'
         branch = 'screenshot-reports'
         try:
-            parent = api(f'{root}/git/ref/heads/{branch}')['object']['sha']
+            parent = self.api.request(f'{root}/git/ref/heads/{branch}')['object']['sha']
         except subprocess.CalledProcessError as error:
             if '404' in error.stderr:
                 return []
             raise
-        tree_sha = api(f'{root}/git/commits/{parent}')['tree']['sha']
-        listing = api(f'{root}/git/trees/{tree_sha}?recursive=1')
+        tree_sha = self.api.request(f'{root}/git/commits/{parent}')['tree']['sha']
+        listing = self.api.request(f'{root}/git/trees/{tree_sha}?recursive=1')
         if listing.get('truncated'):
             raise ValueError('Screenshot tree was truncated; refusing partial cleanup')
         now = now or datetime.now(timezone.utc)
@@ -71,7 +69,7 @@ class ScreenshotReportStore:
             report_dir = entry['path'].split('/', 2)[1]
             timestamp = report_dir.split('-', 1)[0]
             if run_id not in source_by_run and (closed_pr or len(timestamp) < 10):
-                source_by_run[run_id] = api(f'{root}/actions/runs/{run_id}')
+                source_by_run[run_id] = self.api.request(f'{root}/actions/runs/{run_id}')
             if len(timestamp) >= 10 and timestamp.isdecimal():
                 created = datetime.fromtimestamp(int(timestamp), timezone.utc)
             else:
@@ -82,12 +80,10 @@ class ScreenshotReportStore:
                 expired.append({'path': entry['path'], 'mode': entry['mode'], 'type': 'blob', 'sha': None})
         if not expired:
             return []
-        new_tree = api(f'{root}/git/trees', {'base_tree': tree_sha, 'tree': expired})['sha']
-        commit = api(f'{root}/git/commits', {
+        new_tree = self.api.request(f'{root}/git/trees', {'base_tree': tree_sha, 'tree': expired})['sha']
+        commit = self.api.request(f'{root}/git/commits', {
             'message': f'Expire {len(expired)} screenshot images', 'tree': new_tree,
             'parents': []})['sha']
-        subprocess.run(['gh', 'api', f'{root}/git/refs/heads/{branch}', '--method', 'PATCH',
-                        '--input', '-'], input=json.dumps({'sha': commit, 'force': True}),
-                       text=True, capture_output=True, check=True)
+        self.api.update_ref(f'{root}/git/refs/heads/{branch}', commit, force=True)
         print(f'Expired {len(expired)} screenshot images')
         return [entry['path'] for entry in expired]

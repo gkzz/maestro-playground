@@ -4,9 +4,9 @@ from datetime import datetime, timezone
 import os
 from pathlib import Path
 
-from e2e.screenshot_report.api import api
-from e2e.screenshot_report.report import ScreenshotReport
-from e2e.screenshot_report.store import ScreenshotReportStore
+from .classes.github_api import GitHubApi
+from .classes.report import ScreenshotReport
+from .classes.store import ScreenshotReportStore
 
 
 def main():
@@ -21,13 +21,14 @@ def main():
     parser.add_argument('--publish', action='store_true')
     args = parser.parse_args()
     repository = os.environ['GITHUB_REPOSITORY']
-    store = ScreenshotReportStore(repository)
+    api = GitHubApi()
+    store = ScreenshotReportStore(repository, api)
     if args.cleanup:
         store.cleanup(closed_pr=args.closed_pr)
         return
     if not all((args.downloads, args.output, args.locale, args.source_run)):
         parser.error('--downloads, --output, --locale and --source-run are required')
-    source = api(f'repos/{repository}/actions/runs/{args.source_run}') if args.publish else None
+    source = api.request(f'repos/{repository}/actions/runs/{args.source_run}') if args.publish else None
     if source and (source['name'] != 'E2E' or source['head_repository']['full_name'] != repository):
         raise ValueError('Only E2E runs from this repository can be published')
     screenshot_report = ScreenshotReport(args.downloads, args.baselines, args.output, args.locale)
