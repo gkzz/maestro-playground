@@ -72,6 +72,18 @@
 
   packageRules: [
     {
+      // Kotlin と AGP は Android ビルド用の更新として同じ PR で確認する。
+      matchPackageNames: [
+        "org.jetbrains.kotlin:kotlin-gradle-plugin",
+        "com.android.tools.build:gradle",
+      ],
+      groupName: "Android build tooling",
+      groupSlug: "android-build-tooling",
+      // AGP の major 更新も Kotlin の更新と同じ PR にまとめる。
+      separateMajorMinor: false,
+      automerge: false,
+    },
+    {
       matchManagers: ["custom.regex"],
       matchPackageNames: ["org.jetbrains.kotlin:kotlin-gradle-plugin"],
       automerge: false,
