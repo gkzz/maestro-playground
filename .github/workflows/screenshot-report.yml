@@ -6,6 +6,9 @@ on:
       run_id:
         type: string
         required: true
+      platform:
+        type: string
+        required: true
       locale:
         type: string
         required: true
@@ -46,11 +49,12 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           SOURCE_RUN_ID: ${{ inputs.run_id }}
+          E2E_PLATFORM: ${{ inputs.platform }}
         run: |
           python3 -m e2e.screenshot_report.cli \
             --downloads "$RUNNER_TEMP/captures" \
             --output artifacts/screenshot-report \
-            --locale "$E2E_LOCALE" --source-run "$SOURCE_RUN_ID" --publish
+            --platform "$E2E_PLATFORM" --locale "$E2E_LOCALE" --source-run "$SOURCE_RUN_ID" --publish
 
       - name: Upload comparison report
         if: always()

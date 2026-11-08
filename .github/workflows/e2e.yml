@@ -221,3 +221,4 @@ jobs:
     with:
       run_id: ${{ github.run_id }}
       locale: ${{ inputs.locale || 'ja' }}
+      platform: ${{ github.event_name == 'pull_request' && 'android' || inputs.platform }}

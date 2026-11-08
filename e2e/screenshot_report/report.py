@@ -3,11 +3,11 @@ import json
 
 
 class ScreenshotReport:
-    def __init__(self, downloads, baselines, output, locale):
+    def __init__(self, downloads, output, locale, platforms):
         self.downloads = downloads
-        self.baselines = baselines
         self.output = output
         self.locale = locale
+        self.platforms = platforms
         self.unavailable = []
 
     def assertion(self, platform):
@@ -47,19 +47,23 @@ class ScreenshotReport:
     def build(self):
         self.output.mkdir(parents=True, exist_ok=True)
         sections = []
-        for platform in ('android', 'ios'):
+        for platform in self.platforms:
             stem = f'{platform}-unicode-field-{self.locale}'
             matches = list(self.downloads.rglob(f'{stem}.png'))
             section = [f'### {platform} / {self.locale}', '']
             if not matches:
+                self.unavailable.append(f'{platform}: capture unavailable')
                 sections.append('\n'.join(section + ['No capture available. See the source job logs.', '']))
                 continue
             if len(matches) != 1:
                 raise ValueError(f'Ambiguous screenshot: {stem}')
             current = self.output / f'{stem}-current.png'
             current.write_bytes(matches[0].read_bytes())
-            baseline = self.baselines / f'{stem}.png'
-            if baseline.exists():
+            states = list(self.downloads.rglob(f'{stem}-baseline-state.txt'))
+            baselines = list(self.downloads.rglob(f'{stem}-baseline.png'))
+            state = states[0].read_text().strip() if len(states) == 1 else None
+            if state == 'present' and len(baselines) == 1:
+                baseline = baselines[0]
                 reference = self.output / f'{stem}-baseline.png'
                 reference.write_bytes(baseline.read_bytes())
                 try:
@@ -81,8 +85,12 @@ class ScreenshotReport:
                 section += ['| ' + ' | '.join(headings) + ' |',
                             '| ' + ' | '.join('---' for _ in headings) + ' |',
                             '| ' + ' | '.join(cells) + ' |', '']
-            else:
+            elif state == 'absent' and not baselines:
                 section += ['Not compared: no baseline for this OS/locale.', '',
+                            f'![current](@@/{current.name})', '']
+            else:
+                self.unavailable.append(f'{platform}: baseline provenance unavailable')
+                section += ['Baseline provenance unavailable. See the source job logs.', '',
                             f'![current](@@/{current.name})', '']
             screens = list(self.downloads.rglob(f'{platform}-unicode-input-{self.locale}.png'))
             if len(screens) == 1:
