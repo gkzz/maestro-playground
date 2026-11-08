@@ -32,33 +32,30 @@ CI では、既存の Emulator / Simulator のセットアップで `E2E_LOCALE`
 
 ## 画像比較サマリー
 
-同じリポジトリの PR と手動実行では、E2E のテストジョブが終わると、デフォルトブランチの `Screenshot report` workflow を呼び出します。サマリーは同じ E2E 実行内に生成します。
+> WIP: 以下は移行後の仕様です。現在固定している公式 CLI 2.12.1 は、アサーション画像と実測一致率の出力に未対応です。必要な情報を出力する公式版の公開後、実際の出力形式に合わせてレポートを調整し、Android / iOS の E2E で検証してからマージします。
+
+同じリポジトリの PR と手動実行では、E2E のテストジョブが終わると `Screenshot report` workflow を呼び出します。サマリーは同じ E2E 実行内に生成します。呼び出し元と同じリビジョンの workflow とコードを使うため、PR の変更もマージ前に検証できます。
 
 ```mermaid
 flowchart LR
-    E2E["E2E ジョブ<br/>Maestro の判定・キャプチャ"] --> Artifact["Maestro artifact"]
-    Artifact --> Report["Screenshot report<br/>デフォルトブランチのコードで生成"]
-    Baseline["デフォルトブランチの基準画像"] --> Report
+    E2E["E2E ジョブ<br/>Maestro の判定・実測一致率・アサーション画像"] --> Artifact["Maestro artifact"]
+    Artifact --> Report["Screenshot report"]
+    Report --> Images["画像 artifact<br/>actions/upload-artifact"]
     Report --> Summary["同じ E2E 実行のサマリー"]
-    Report --> Branch["サマリー用画像の保存先<br/>screenshot-reports ブランチ"]
-    Branch --> Summary
-    Branch --> Expire["Expire screenshot reports<br/>期限切れ・PR クローズ時に削除"]
+    Images --> Link["ダウンロードリンク"] --> Summary
 ```
 
-サマリーでは、OS・ロケールごとに次を確認できます。
+サマリーには、OS・ロケールごとに各 `assertScreenshot` の判定結果、実測一致率、しきい値、画像のファイル名を表示します。リンク先の `screenshot-comparison-<locale>` artifact をダウンロードすると、アサーションで実際に使用した画像と、Maestro が生成した場合は差分画像を確認できます。画像はインライン表示しません。
 
-- Maestro の `assertScreenshot` の判定結果
-- 基準画像（Baseline）と今回の入力欄（Current）
-- artifact にある場合は、Maestro の差分画像（Diff）
-- 折りたたんで表示する画面全体のキャプチャ
+一致率は Maestro の比較処理が返した値を使用します。Python では画像比較や合否判定を行いません。画像サイズが異なる場合は一致率を計算できないため、`N/A (image size mismatch)` と表示します。アサーションの失敗は元の E2E ジョブの失敗として扱います。
 
-基準画像がない場合は「未比較」、キャプチャがない場合は取得できなかった旨を表示します。スクリーンショットの合否は Maestro が判定し、Python による独自のピクセル比較は行いません。E2E の成否は元の Maestro ジョブで確認してください。
+基準画像がない場合は「未比較」と表示します。結果ファイルや実測一致率、実際のアサーション画像を取得できない場合は、その旨をサマリーに残したうえでレポート Job を失敗させます。直前の `takeScreenshot` の画像をアサーション画像の代わりには使いません。
 
-サマリーに表示する画像は、専用の `screenshot-reports` ブランチに保存します。サマリーは、このブランチの URL を参照します。実行から1日経過した画像は、定期実行の `Expire screenshot reports` workflow がブランチから削除します。PR がクローズされた場合は、その PR の E2E 実行で作られた画像を早めに削除します。
+基準画像はアップロード対象から除外します。Maestro artifact と画像 artifact は `retention-days: 1` で保存し、保持期間の管理は GitHub Actions に任せます。ダウンロードには GitHub へのログインとリポジトリへのアクセス権が必要で、artifact の有効期限が切れるか、artifact または実行が削除されるとリンク先から取得できなくなります。
 
-Maestro の artifact と比較レポートの artifact も `retention-days: 1` に設定しています。定期実行が遅れることがあるため、画像が消える時刻は実行からちょうど24時間後とは限りません。期限切れの画像を除き、ブランチの履歴を作り直します。ただし、GitHub の内部キャッシュや到達不能な Git オブジェクトが物理的に削除される時刻は制御できません。
+`screenshot-reports` ブランチへの画像公開、履歴の強制更新、期限切れ画像を削除する workflow は使用しません。画像保存のための `contents: write` も不要です。以前のブランチに保存された画像は、この変更だけでは削除されません。fork からの PR では引き続きレポート Job を実行せず、通常の Maestro artifact を使用します。
 
-画像の公開と削除を行う専用ジョブには、`contents: write` を付与します。PR の E2E ジョブには書き込み権限を付与しません。公開ジョブはデフォルトブランチのコードを実行します。fork からの PR では画像公開ジョブを実行せず、通常の Maestro artifact を使用します。
+この WIP 実装では、`commands.json` の `metadata.screenshotComparison`（実測一致率、しきい値、実画像のパス、サイズ不一致の有無）を読み取ります。この形式はローカルで変更した Maestro との接続用で、公式の出力仕様として確定したものではありません。公式版の対応を待ち、配布元は公式のまま維持します。
 
 Android で Maestro の実行開始時に、`deviceInfo` の取得中にデバイスサーバーが切断された場合、CI は1回だけ再実行します。初回の `maestro.log` は `maestro-first-attempt.log` として artifact に残します。
 画像の不一致や他のテスト失敗では再実行しません。

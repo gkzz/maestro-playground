@@ -139,7 +139,9 @@ jobs:
         if: always()
         with:
           name: maestro-android-${{ matrix.flow }}
-          path: artifacts/maestro/android/${{ matrix.flow }}
+          path: |
+            artifacts/maestro/android/${{ matrix.flow }}
+            !artifacts/maestro/android/${{ matrix.flow }}/*-baseline.png
           retention-days: 1
 
   test-ios:
@@ -207,7 +209,9 @@ jobs:
         if: always()
         with:
           name: maestro-ios-${{ matrix.flow }}
-          path: artifacts/maestro/ios/${{ matrix.flow }}
+          path: |
+            artifacts/maestro/ios/${{ matrix.flow }}
+            !artifacts/maestro/ios/${{ matrix.flow }}/*-baseline.png
           retention-days: 1
 
   screenshot-report:
@@ -216,8 +220,8 @@ jobs:
     if: ${{ always() && !cancelled() && (github.event_name == 'workflow_dispatch' || github.event.pull_request.head.repo.full_name == github.repository) }}
     permissions:
       actions: read
-      contents: write
-    uses: gkzz/maestro-playground/.github/workflows/screenshot-report.yml@main
+      contents: read
+    uses: ./.github/workflows/screenshot-report.yml
     with:
       run_id: ${{ github.run_id }}
       locale: ${{ inputs.locale || 'ja' }}
