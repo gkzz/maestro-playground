@@ -8,7 +8,9 @@ PR では `Lint` を実行します。`Test` と `E2E` は `docs/**` と Markdow
 
 `Test` ではスクリーンショットレポート生成処理の Python 単体テストを実行します。対象ファイルを変更した PR、`main` への push、手動実行で起動します。
 
-PR の `E2E` では、Android で `settings` / `wikipedia` / `unicode` の3フローを実行します。手動実行（`workflow_dispatch`）では、`platform` で Android または iOS を選び、選択したプラットフォームで同じ3フローを実行します。
+PR の `E2E` では、Android / iOS の `unicode` を各1本、合計2本実行します。スクリーンショットレポートも両 OS を集計します。手動実行（`workflow_dispatch`）では、`platform` に `all` / `android` / `ios` を指定し、選択したプラットフォームで `settings` / `wikipedia` / `unicode` の3フローを実行します。
+
+Maestro CLI のバージョン、Emulator / Simulator の設定、Settings / Wikipedia のフロー、アプリのダウンロード・インストール処理を変更した場合は、マージ前に同じブランチから `platform: all` で手動実行し、全6フローの成功を確認します。
 
 CI の構成については [ARCHITECTURE.md](./ARCHITECTURE.md) の `CI` を参照してください。
 
@@ -18,7 +20,7 @@ Maestro のテスト結果はローカルと同じ `artifacts/maestro/<platform>
 
 Renovate は mise の標準対応を使い、Flutter の安定版バージョンと lockfile を同時に更新します。Flutter の自動マージは無効です。
 
-更新 PR では、Android の3フローに加え、同じブランチから `workflow_dispatch` で `ios` を指定して実行します。iOS の3フローも成功したことを確認してからマージします。Flutter の更新に伴って必要な SDK / NDK が変わった場合は、その PR で設定も調整します。
+Flutter の更新 PR でも、Android / iOS の `unicode` を自動実行します。両 OS の成功を確認してからマージします。Flutter の更新に伴って必要な SDK / NDK が変わった場合は、その PR で設定も調整します。
 
 Android API レベルはテスト対象として手動で選びます。Emulator 本体の固定と Renovate による管理は、別の PR で扱います。
 
