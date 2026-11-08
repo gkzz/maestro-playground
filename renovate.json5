@@ -19,6 +19,15 @@
 
   customManagers: [
     {
+      // 取得したデモアプリに適用する Gradle Wrapper のバージョンを監視する。
+      customType: "regex",
+      managerFilePatterns: ["/^e2e/build_demo_app$/"],
+      matchStrings: ["gradle_version=(?<currentValue>\\d+\\.\\d+\\.\\d+)"],
+      depNameTemplate: "gradle",
+      datasourceTemplate: "gradle-version",
+      versioningTemplate: "gradle",
+    },
+    {
       // 取得したデモアプリに適用する AGP のバージョンを監視する。
       customType: "regex",
       managerFilePatterns: ["/^e2e/build_demo_app$/"],
@@ -72,16 +81,25 @@
 
   packageRules: [
     {
-      // Kotlin と AGP は Android ビルド用の更新として同じ PR で確認する。
+      // Kotlin・AGP・Gradle は Android ビルド用の更新として同じ PR で確認する。
       matchPackageNames: [
         "org.jetbrains.kotlin:kotlin-gradle-plugin",
         "com.android.tools.build:gradle",
+        "gradle",
       ],
       groupName: "Android build tooling",
       groupSlug: "android-build-tooling",
-      // AGP の major 更新も Kotlin の更新と同じ PR にまとめる。
+      // major 更新も他の Android ビルドツールの更新と同じ PR にまとめる。
       separateMajorMinor: false,
       automerge: false,
+    },
+    {
+      matchManagers: ["custom.regex"],
+      matchPackageNames: ["gradle"],
+      automerge: false,
+      prBodyNotes: [
+        "Gradle更新はFlutter・AGP・Kotlin・JDKとの互換性を確認し、Androidの3フローの成功を確認してからマージしてください。",
+      ],
     },
     {
       matchManagers: ["custom.regex"],
