@@ -47,6 +47,17 @@ if [ -z "$screenshot_baseline" ] && [ "${E2E_FLOW:-}" = unicode ]; then
   candidate="$PWD/e2e/baselines/android-unicode-field-$e2e_locale.png"
   if [ -f "$candidate" ]; then screenshot_baseline="$candidate"; fi
 fi
+if [ "${E2E_FLOW:-}" = unicode ]; then
+  snapshot="$PWD/$output_dir/android-unicode-field-$e2e_locale-baseline.png"
+  mkdir -p "$output_dir"
+  if [ -n "$screenshot_baseline" ]; then
+    cp "$screenshot_baseline" "$snapshot"
+    screenshot_baseline="$snapshot"
+    echo present > "$output_dir/android-unicode-field-$e2e_locale-baseline-state.txt"
+  else
+    echo absent > "$output_dir/android-unicode-field-$e2e_locale-baseline-state.txt"
+  fi
+fi
 maestro --version
 maestro "$@" test -e E2E_LOCALE="$e2e_locale" -e SCREENSHOT_BASELINE="$screenshot_baseline" $flow_args --test-output-dir "$output_dir" --debug-output "$output_dir" --flatten-debug-output
 '''
@@ -67,6 +78,17 @@ screenshot_baseline="${E2E_SCREENSHOT_BASELINE:-}"
 if [ -z "$screenshot_baseline" ] && [ "${E2E_FLOW:-}" = unicode ]; then
   candidate="$PWD/e2e/baselines/ios-unicode-field-$e2e_locale.png"
   if [ -f "$candidate" ]; then screenshot_baseline="$candidate"; fi
+fi
+if [ "${E2E_FLOW:-}" = unicode ]; then
+  snapshot="$PWD/$output_dir/ios-unicode-field-$e2e_locale-baseline.png"
+  mkdir -p "$output_dir"
+  if [ -n "$screenshot_baseline" ]; then
+    cp "$screenshot_baseline" "$snapshot"
+    screenshot_baseline="$snapshot"
+    echo present > "$output_dir/ios-unicode-field-$e2e_locale-baseline-state.txt"
+  else
+    echo absent > "$output_dir/ios-unicode-field-$e2e_locale-baseline-state.txt"
+  fi
 fi
 maestro --version
 maestro --platform ios test -e E2E_LOCALE="$e2e_locale" -e SCREENSHOT_BASELINE="$screenshot_baseline" $flow_args --test-output-dir "$output_dir" --debug-output "$output_dir" --flatten-debug-output
