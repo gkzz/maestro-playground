@@ -53,8 +53,9 @@ case "$platform" in
     sed "s/id(\"org.jetbrains.kotlin.android\") version \"2\\.1\\.0\"/id(\"org.jetbrains.kotlin.android\") version \"$kotlin_version\"/" "$settings" > "$settings.tmp"
     mv "$settings.tmp" "$settings"
     # The pinned demo app uses Gradle 8.12, below this Flutter version's minimum.
+    gradle_version=8.14.3
     wrapper=android/gradle/wrapper/gradle-wrapper.properties
-    sed 's/gradle-8\.12-all\.zip/gradle-8.14.3-all.zip/' "$wrapper" > "$wrapper.tmp"
+    sed "s/gradle-8\\.12-all\\.zip/gradle-$gradle_version-all.zip/" "$wrapper" > "$wrapper.tmp"
     mv "$wrapper.tmp" "$wrapper"
     flutter build apk
     cp build/app/outputs/flutter-apk/app-release.apk "$script_dir/apps/demo_app.apk"
