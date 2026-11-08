@@ -127,7 +127,8 @@ flowchart TB
 
   pr --> lint
   pr --> test
-  pr --> e2e
+  pr --> androidUnicode
+  pr --> iosUnicode
   dispatch -->|all / android| e2e
   dispatch -->|all / ios| iosE2E
 ```
@@ -136,7 +137,7 @@ flowchart TB
 
 `Test` は対象ファイルを変更した PR、`main` への push、手動実行で起動します。
 
-PR の `E2E` は Android の3フローを実行します。iOS は `workflow_dispatch` のみで実行し、`platform` が `ios` または `all` の場合に3フローを実行します。Android は手動実行でも `android` または `all` を選ぶと実行されます。ロケールは PR では `ja`、手動実行では `locale` 入力（既定値 `ja`）です。
+PR の `E2E` は Android / iOS の `unicode` を各1本実行し、スクリーンショットレポートは両 OS を集計します。手動実行では `platform` で `all` / `android` / `ios` を選び、選択したプラットフォームで Settings / Wikipedia / Unicode の3フローを実行します。ロケールは PR では `ja`、手動実行では `locale` 入力（既定値 `ja`）です。
 
 ### Runtime Setup in CI
 

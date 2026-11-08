@@ -43,16 +43,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - flow: settings
-            display_name: Settings
-            requires_apps: false
-          - flow: wikipedia
-            display_name: Wikipedia
-            requires_apps: true
-          - flow: unicode
-            display_name: Unicode input and screenshot
-            requires_apps: true
+        # PRs cover Unicode on both platforms; manual runs retain all flows.
+        include: ${{ fromJSON(github.event_name == 'pull_request' && '[{"flow":"unicode","display_name":"Unicode input and screenshot","requires_apps":true}]' || '[{"flow":"settings","display_name":"Settings","requires_apps":false},{"flow":"wikipedia","display_name":"Wikipedia","requires_apps":true},{"flow":"unicode","display_name":"Unicode input and screenshot","requires_apps":true}]') }}
 
     steps:
       - name: Enable KVM group perms
@@ -144,7 +136,7 @@ jobs:
 
   test-ios:
     name: iOS / ${{ matrix.display_name }}
-    if: ${{ github.event_name == 'workflow_dispatch' && (inputs.platform == 'all' || inputs.platform == 'ios') }}
+    if: ${{ github.event_name == 'pull_request' || inputs.platform == 'all' || inputs.platform == 'ios' }}
     runs-on: macos-26
     timeout-minutes: 120
     env:
@@ -153,16 +145,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - flow: settings
-            display_name: Settings
-            requires_apps: false
-          - flow: wikipedia
-            display_name: Wikipedia
-            requires_apps: true
-          - flow: unicode
-            display_name: Unicode input and screenshot
-            requires_apps: true
+        # PRs cover Unicode on both platforms; manual runs retain all flows.
+        include: ${{ fromJSON(github.event_name == 'pull_request' && '[{"flow":"unicode","display_name":"Unicode input and screenshot","requires_apps":true}]' || '[{"flow":"settings","display_name":"Settings","requires_apps":false},{"flow":"wikipedia","display_name":"Wikipedia","requires_apps":true},{"flow":"unicode","display_name":"Unicode input and screenshot","requires_apps":true}]') }}
 
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -221,4 +205,4 @@ jobs:
     with:
       run_id: ${{ github.run_id }}
       locale: ${{ inputs.locale || 'ja' }}
-      platform: ${{ github.event_name == 'pull_request' && 'android' || inputs.platform }}
+      platform: ${{ github.event_name == 'pull_request' && 'all' || inputs.platform }}
