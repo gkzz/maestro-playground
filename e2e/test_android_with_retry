@@ -11,7 +11,7 @@ if (( status == 0 )); then
 fi
 
 # A lost device server before the flow starts is transient. Do not retry assertions.
-if [[ ! -f "$log" ]] || ! rg -q "Device server died during 'deviceInfo'" "$log"; then
+if [[ ! -f "$log" ]] || ! grep -Fq "Device server died during 'deviceInfo'" "$log"; then
   exit "$status"
 fi
 
