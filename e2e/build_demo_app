@@ -34,7 +34,7 @@ flutter pub get
 case "$platform" in
   android)
     # Keep the upstream app pinned while tracking AGP updates with Renovate.
-    agp_version=8.11.1
+    agp_version=9.4.1
     settings=android/settings.gradle.kts
     agp='id("com.android.application") version "8.9.1" apply false'
     if ! grep -Fq "$agp" "$settings"; then
@@ -44,7 +44,7 @@ case "$platform" in
     sed "s/id(\"com.android.application\") version \"8\\.9\\.1\"/id(\"com.android.application\") version \"$agp_version\"/" "$settings" > "$settings.tmp"
     mv "$settings.tmp" "$settings"
     # Flutter 3.47.8 requires Kotlin 2.2.20 or later.
-    kotlin_version=2.2.20
+    kotlin_version=2.4.21
     kotlin='id("org.jetbrains.kotlin.android") version "2.1.0" apply false'
     if ! grep -Fq "$kotlin" "$settings"; then
       echo "Expected Kotlin 2.1.0 declaration not found in $settings; review the demo app build overrides." >&2
@@ -53,7 +53,7 @@ case "$platform" in
     sed "s/id(\"org.jetbrains.kotlin.android\") version \"2\\.1\\.0\"/id(\"org.jetbrains.kotlin.android\") version \"$kotlin_version\"/" "$settings" > "$settings.tmp"
     mv "$settings.tmp" "$settings"
     # The pinned demo app uses Gradle 8.12, below this Flutter version's minimum.
-    gradle_version=8.14.3
+    gradle_version=9.8.2
     wrapper=android/gradle/wrapper/gradle-wrapper.properties
     sed "s/gradle-8\\.12-all\\.zip/gradle-$gradle_version-all.zip/" "$wrapper" > "$wrapper.tmp"
     mv "$wrapper.tmp" "$wrapper"
