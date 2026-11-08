@@ -19,6 +19,25 @@
 
   customManagers: [
     {
+      // 取得したデモアプリに適用する AGP のバージョンを監視する。
+      customType: "regex",
+      managerFilePatterns: ["/^e2e/build_demo_app$/"],
+      matchStrings: ["agp_version=(?<currentValue>\\d+\\.\\d+\\.\\d+)"],
+      depNameTemplate: "com.android.tools.build:gradle",
+      datasourceTemplate: "maven",
+      registryUrlTemplate: "https://dl.google.com/dl/android/maven2/",
+      versioningTemplate: "maven",
+    },
+    {
+      // 取得したデモアプリに適用する Kotlin Gradle Plugin を監視する。
+      customType: "regex",
+      managerFilePatterns: ["/^e2e/build_demo_app$/"],
+      matchStrings: ["kotlin_version=(?<currentValue>\\d+\\.\\d+\\.\\d+)"],
+      depNameTemplate: "org.jetbrains.kotlin:kotlin-gradle-plugin",
+      datasourceTemplate: "maven",
+      versioningTemplate: "maven",
+    },
+    {
       customType: "regex",
       managerFilePatterns: ["/^\\.config/(mise/config|flutter/mise)\\.toml$/"],
       matchStrings: ['min_version = "(?<currentValue>[^"\\s]+)"'],
@@ -52,6 +71,22 @@
   ],
 
   packageRules: [
+    {
+      matchManagers: ["custom.regex"],
+      matchPackageNames: ["org.jetbrains.kotlin:kotlin-gradle-plugin"],
+      automerge: false,
+      prBodyNotes: [
+        "Kotlin更新はFlutter・AGP・Gradleとの互換性を確認し、Androidの3フローの成功を確認してからマージしてください。",
+      ],
+    },
+    {
+      matchManagers: ["custom.regex"],
+      matchPackageNames: ["com.android.tools.build:gradle"],
+      automerge: false,
+      prBodyNotes: [
+        "AGP更新はGradle・JDKとの互換性を確認し、Androidの3フローの成功を確認してからマージしてください。",
+      ],
+    },
     {
       // mise 本体は gkzz/dotfiles リポジトリで先に更新し、こちらはその後に追従したい。
       // この設定でリポジトリ間の更新順序は制御できないため、マージ前に dotfiles 側の更新を確認する。

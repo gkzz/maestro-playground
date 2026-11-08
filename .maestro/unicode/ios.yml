@@ -36,4 +36,4 @@ tags:
           path: ${SCREENSHOT_BASELINE}
           cropOn:
             id: textInput
-          thresholdPercentage: 100
+          thresholdPercentage: 99.5

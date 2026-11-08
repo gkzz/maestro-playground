@@ -39,7 +39,7 @@ packages=(
   "platforms/android-${api_level}"
   "system-images/android-${api_level}/${target}/${arch}"
   "cmdline-tools/$cmdline_tools_version"
-  # Required by the demo app's Android Gradle Plugin 8.9.1.
+  # Build Tools for the demo app's Android Gradle Plugin (see e2e/build_demo_app).
   "build-tools/35.0.0"
 )
 # Keep avdmanager for explicit API/image selection and root-capable google_apis images.
