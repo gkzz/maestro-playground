@@ -198,6 +198,12 @@ If an update changes Flutter's SDK / NDK requirements, adjust those pins in the 
 Android API 36 is a manually selected test target. Emulator binary pinning and
 Renovate management are deferred to a separate PR.
 
+Android builds override the pinned upstream demo app tooling with AGP 8.11.1,
+Kotlin 2.2.20 and Gradle 8.14.3 for compatibility with Flutter 3.47.8.
+These overrides are maintained in `e2e/build_demo_app` and are not updated
+independently by Renovate. Verify compatibility with the pinned Flutter SDK
+when updating either the source revision or Flutter.
+
 The source revision is pinned in `e2e/build_demo_app`. Source and app output go to
 ignored `local/` and `e2e/apps/` directories. No upstream Actions artifact is required.
 The flow opens `Input/Keyboard`, inputs `東京` with `inputText`, and checks the
