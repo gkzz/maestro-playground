@@ -14,11 +14,7 @@ on:
         required: true
 permissions:
   actions: read
-  contents: write
-
-concurrency:
-  group: screenshot-reports
-  cancel-in-progress: false
+  contents: read
 
 jobs:
   report:
@@ -27,7 +23,6 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ github.event.repository.default_branch }}
           persist-credentials: false
 
       - name: Download Flutter captures
@@ -45,21 +40,32 @@ jobs:
           E2E_LOCALE: ${{ inputs.locale }}
         run: echo "E2E_LOCALE=$E2E_LOCALE" >> "$GITHUB_ENV"
 
-      - name: Publish images and job summary
+      - name: Build assertion report
         env:
-          GH_TOKEN: ${{ github.token }}
           SOURCE_RUN_ID: ${{ inputs.run_id }}
           E2E_PLATFORM: ${{ inputs.platform }}
         run: |
           python3 -m e2e.screenshot_report.cli \
             --downloads "$RUNNER_TEMP/captures" \
             --output artifacts/screenshot-report \
-            --platform "$E2E_PLATFORM" --locale "$E2E_LOCALE" --source-run "$SOURCE_RUN_ID" --publish
+            --platform "$E2E_PLATFORM" --locale "$E2E_LOCALE" --source-run "$SOURCE_RUN_ID"
 
       - name: Upload comparison report
+        id: upload
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: screenshot-comparison-${{ env.E2E_LOCALE }}
-          path: artifacts/screenshot-report
+          path: artifacts/screenshot-report/*.png
+          if-no-files-found: warn
           retention-days: 1
+
+      - name: Write job summary
+        if: always()
+        env:
+          ARTIFACT_URL: ${{ steps.upload.outputs.artifact-url }}
+          SOURCE_RUN_ID: ${{ inputs.run_id }}
+        run: |
+          python3 -m e2e.screenshot_report.cli \
+            --output artifacts/screenshot-report \
+            --artifact-url "${ARTIFACT_URL:-https://github.com/$GITHUB_REPOSITORY/actions/runs/$SOURCE_RUN_ID#artifacts}"
