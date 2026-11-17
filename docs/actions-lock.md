@@ -16,7 +16,7 @@ gh actions-lock --verify
 
 Commit the workflow changes and lockfile together. New workflows must be onboarded
 with the generation command above; Renovate does not onboard them automatically.
-Local composite actions currently contain no remote action dependencies and retain
+Local composite actions currently contain no remote action dependencies and use
 `./` references. If remote dependencies are added inside a local action, migrate
 its callers with `gh actions-lock --migrate-local-actions --no-narrow` so those
 transitive dependencies are locked as well.
