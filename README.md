@@ -216,3 +216,8 @@ Both Android and iOS CI matrices include `unicode`. iOS runs only through manual
 Artifacts are saved as `maestro-ios-unicode` for the iOS flow.
 The default local suites remain settings and Wikipedia; select
 `make test-android-unicode` or `make test-ios-unicode` explicitly.
+
+## GitHub Actions dependencies
+
+Action versions and resolved commits are managed with Renovate and `actions.lock`.
+See [the update guide](docs/actions-lock.md) for manual updates and verification.
