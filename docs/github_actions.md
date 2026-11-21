@@ -8,7 +8,7 @@ PR では `Lint` を実行します。`Test` と `E2E` は `docs/**` と Markdow
 
 `Test` ではスクリーンショットレポート生成処理の Python 単体テストを実行します。対象ファイルを変更した PR、`main` への push、手動実行で起動します。
 
-PR の `E2E` では、Android / iOS の `unicode` を各1本、合計2本実行します。スクリーンショットレポートも両 OS を集計します。手動実行（`workflow_dispatch`）では、`platform` に `all` / `android` / `ios` を指定し、選択したプラットフォームで `settings` / `wikipedia` / `unicode` の3フローを実行します。
+PR の `E2E` では、Android / iOS の `unicode` を各1本、合計2本実行します。手動実行（`workflow_dispatch`）では、`platform` に `all` / `android` / `ios` を指定し、選択したプラットフォームで `settings` / `wikipedia` / `unicode` の3フローを実行します。
 
 Maestro CLI のバージョン、Emulator / Simulator の設定、Settings / Wikipedia のフロー、アプリのダウンロード・インストール処理を変更した場合は、マージ前に同じブランチから `platform: all` で手動実行し、全6フローの成功を確認します。
 
@@ -33,6 +33,8 @@ CI では、既存の Emulator / Simulator のセットアップで `E2E_LOCALE`
 ローカルでのキャプチャと比較の手順は [DEVELOPMENT.md](./DEVELOPMENT.md) を参照してください。
 
 ## 画像比較サマリー
+
+現在、`Screenshot report` workflow の呼び出しはコメントアウトしています。再利用 workflow の `@main` 参照は `actions.lock` の固定対象外のため、サマリーの生成と画像公開を停止しています。[#41](https://github.com/gkzz/maestro-playground/issues/41) で保存方式と関連 workflow を再検討します。Maestro による画像比較と artifact の保存は継続します。以下は停止前の構成です。
 
 同じリポジトリの PR と手動実行では、E2E のテストジョブが終わると、デフォルトブランチの `Screenshot report` workflow を呼び出します。サマリーは同じ E2E 実行内に生成します。
 

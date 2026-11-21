@@ -194,15 +194,17 @@ jobs:
           path: artifacts/maestro/ios/${{ matrix.flow }}
           retention-days: 1
 
-  screenshot-report:
-    name: Screenshot report
-    needs: [test-android, test-ios]
-    if: ${{ always() && !cancelled() && (github.event_name == 'workflow_dispatch' || github.event.pull_request.head.repo.full_name == github.repository) }}
-    permissions:
-      actions: read
-      contents: write
-    uses: gkzz/maestro-playground/.github/workflows/screenshot-report.yml@main
-    with:
-      run_id: ${{ github.run_id }}
-      locale: ${{ inputs.locale || 'ja' }}
-      platform: ${{ github.event_name == 'pull_request' && 'all' || inputs.platform }}
+  # Disabled: reusable workflow calls are not pinned by actions.lock.
+  # Revisit report publishing in https://github.com/gkzz/maestro-playground/issues/41.
+  # screenshot-report:
+  #   name: Screenshot report
+  #   needs: [test-android, test-ios]
+  #   if: ${{ always() && !cancelled() && (github.event_name == 'workflow_dispatch' || github.event.pull_request.head.repo.full_name == github.repository) }}
+  #   permissions:
+  #     actions: read
+  #     contents: write
+  #   uses: gkzz/maestro-playground/.github/workflows/screenshot-report.yml@main
+  #   with:
+  #     run_id: ${{ github.run_id }}
+  #     locale: ${{ inputs.locale || 'ja' }}
+  #     platform: ${{ github.event_name == 'pull_request' && 'all' || inputs.platform }}
