@@ -3,14 +3,14 @@
 lockfile_version = 1
 
 [[tools.flutter]]
-version = "3.47.8"
+version = "3.47.9"
 backend = "http:flutter"
-specifiers = ["3.47.8"]
+specifiers = ["3.47.9"]
 
 [tools.flutter."platforms.linux-x64"]
-checksum = "sha256:baf7dcc5a3dbba60fe863bf493a6cf203195621f7786eaa5a1bba02cd0d87dd2"
-url = "https://storage.googleapis.com/flutter_infra_release/releases/stable/linux/flutter_linux_3.47.8-stable.tar.xz"
+checksum = "sha256:25ed8c3c29d51a7353f2a944310b478af8214920639524b19c50a19e6c044c5a"
+url = "https://storage.googleapis.com/flutter_infra_release/releases/stable/linux/flutter_linux_3.47.9-stable.tar.xz"
 
 [tools.flutter."platforms.macos-arm64"]
-checksum = "sha256:6114edc2dae3636cfefb7e4456a4510399ee856e324149b34dbacb509e329d05"
-url = "https://storage.googleapis.com/flutter_infra_release/releases/stable/macos/flutter_macos_arm64_3.47.8-stable.zip"
+checksum = "sha256:6545b85938745dc5070e9faf2adf70233c1811009d87fe6d27bfcda5a04b7698"
+url = "https://storage.googleapis.com/flutter_infra_release/releases/stable/macos/flutter_macos_arm64_3.47.9-stable.zip"
