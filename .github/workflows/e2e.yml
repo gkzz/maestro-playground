@@ -62,7 +62,7 @@ jobs:
 
       - name: Setup Java for Flutter build
         if: ${{ matrix.flow == 'unicode' }}
-        uses: actions/setup-java@v6.1.0
+        uses: actions/setup-java@v6.2.0
         with:
           distribution: temurin
           java-version: '17.0.21+9'
