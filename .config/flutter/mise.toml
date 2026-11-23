@@ -1,4 +1,4 @@
-min_version = "2026.11.4"
+min_version = "2026.11.5"
 
 # Keep Flutter optional: the default config installs only Maestro.
 [tools]
