@@ -18,15 +18,15 @@ runs:
         echo "MISE_CONFIG_FILE=$GITHUB_WORKSPACE/.config/mise/config.toml" >> "$GITHUB_ENV"
       env:
         # CI-only mise pin.
-        MISE_VERSION: "2026.11.5"
-        # mise v2026.11.5 mise-linux-x64.tar.xz
-        MISE_SHA256_LINUX_X64: "25c445391850bd7a30f0d2298fe3f7790dbaee4a5c1843b18bd1f27c7b3c892f"
-        # mise v2026.11.5 mise-linux-arm64.tar.xz
-        MISE_SHA256_LINUX_ARM64: "bc4db889e66b814c395d2b67dee928a9cde16386edd233232c720fc9afeec19a"
-        # mise v2026.11.5 mise-macos-x64.tar.xz
-        MISE_SHA256_MACOS_X64: "2ba757f91479a7f0c7b532843985947a459235c5f6379529edaac253fefb2aab"
-        # mise v2026.11.5 mise-macos-arm64.tar.xz
-        MISE_SHA256_MACOS_ARM64: "cdfdf4377a40c242fd3c64e6a706be1b61eb5fd940518edea1c7fbbf9378142b"
+        MISE_VERSION: "2026.11.7"
+        # mise v2026.11.7 mise-linux-x64.tar.xz
+        MISE_SHA256_LINUX_X64: "6a8c99bcea83268b335866c0e0ed2f1e82b94c1e5680b6284d63e60db2087307"
+        # mise v2026.11.7 mise-linux-arm64.tar.xz
+        MISE_SHA256_LINUX_ARM64: "3fb2619201198f6b07c3bdf5f8762871329bec8bd4e50c0d154d31a61b8116c9"
+        # mise v2026.11.7 mise-macos-x64.tar.xz
+        MISE_SHA256_MACOS_X64: "117e6d38831b5bdae5f1430b060fd7b95023973a4395b85e9d32218f57233104"
+        # mise v2026.11.7 mise-macos-arm64.tar.xz
+        MISE_SHA256_MACOS_ARM64: "b8f0d460fba603e04c0bfd4332ec334989978b560a5899de1bc614c4715054cb"
 
     - name: Install mise tools
       if: inputs.install == 'true'
