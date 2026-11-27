@@ -39,8 +39,8 @@ packages=(
   "platforms/android-${api_level}"
   "system-images/android-${api_level}/${target}/${arch}"
   "cmdline-tools/$cmdline_tools_version"
-  # Build Tools for the demo app's Android Gradle Plugin (see e2e/build_demo_app).
-  "build-tools/35.0.0"
+  # AGP 9.1.1 in the Flutter demo app requires Build Tools 36.0.0.
+  "build-tools/36.0.0"
 )
 # Keep avdmanager for explicit API/image selection and root-capable google_apis images.
 # android emulator create currently selects a Play Store image that cannot run adb root.

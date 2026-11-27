@@ -157,9 +157,10 @@ make test-android
 
 ## Flutter Unicode input
 
-Build the upstream [Flutter demo app](https://github.com/mobile-dev-inc/Maestro/tree/7b0d53fb3e1e1740aba00444808718fda279e112/e2e/demo_app)
+Build the upstream [Flutter demo app](https://github.com/mobile-dev-inc/Maestro/tree/4413a3325bef192044c0a9a094364dafe1f285a0/e2e/demo_app)
 with the Flutter version pinned in [`.config/flutter/mise.toml`](.config/flutter/mise.toml),
-Java 17.0.21+9 and Android Platform 36. Set `NDK_VERSION`
+Java 17.0.21+9 and Android Platform 36. The SDK setup installs Build Tools
+36.0.0 for the demo app's Android Gradle Plugin 9.1.1. Set `NDK_VERSION`
 to explicitly install the build NDK; settings and Wikipedia do not require it.
 Install the locked Flutter SDK with `make install-flutter`.
 After SDK setup, build the APK, start the emulator and install the app:
@@ -198,13 +199,11 @@ If an update changes Flutter's SDK / NDK requirements, adjust those pins in the 
 Android API 36 is a manually selected test target. Emulator binary pinning and
 Renovate management are deferred to a separate PR.
 
-Android builds override the pinned upstream demo app tooling with AGP 8.11.1,
-Kotlin 2.2.20 and Gradle 8.14.3 for compatibility with Flutter 3.47.8.
-These overrides are maintained in `e2e/build_demo_app` and are not updated
-independently by Renovate. Verify compatibility with the pinned Flutter SDK
-when updating either the source revision or Flutter.
+The source revision is pinned in `e2e/build_demo_app`. Android and iOS builds use
+the build settings from that revision. Verify compatibility with the pinned Flutter
+SDK when updating either the source revision or Flutter.
 
-The source revision is pinned in `e2e/build_demo_app`. Source and app output go to
+Source and app output go to
 ignored `local/` and `e2e/apps/` directories. No upstream Actions artifact is required.
 The flow opens `Input/Keyboard`, inputs `東京` with `inputText`, and checks the
 `textInput` field by ID and exact text, then checks `copyTextFrom` for exact equality.
