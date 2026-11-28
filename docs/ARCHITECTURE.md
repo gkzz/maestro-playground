@@ -100,7 +100,8 @@ Pull Request では `Lint` を実行します。`Test` と `E2E` は `docs/**` �
 ```mermaid
 flowchart TB
   pr[Pull Request]
-  dispatch[workflow_dispatch: platform を選択]
+  dispatch[workflow_dispatch: platform・OS・ロケールを選択]
+  schedule[週次実行]
 
   subgraph lint[Lint]
     actionlint[actionlint]
@@ -127,8 +128,10 @@ flowchart TB
 
   pr --> lint
   pr --> test
-  pr --> androidUnicode
-  pr --> iosUnicode
+  pr -->|Android 17 / ja・en| androidUnicode
+  pr -->|iOS 27 / ja・en| iosUnicode
+  schedule -->|Android 16・17 / ja・en| androidUnicode
+  schedule -->|iOS 26・27 / ja・en| iosUnicode
   dispatch -->|all / android| e2e
   dispatch -->|all / ios| iosE2E
 ```
