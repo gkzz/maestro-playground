@@ -202,6 +202,35 @@ class ScreenshotReportTest(unittest.TestCase):
             self.assertIn('result unavailable', (output / 'summary.md').read_text())
             self.assertTrue((output / 'ios-unicode-field-ja-current.png').exists())
 
+    def test_versioned_artifacts_keep_weekly_captures_separate(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            downloads = root / 'downloads'
+            for version, locale, status in (
+                    ('16', 'ja', 'FAILED'), ('17', 'ja', 'COMPLETED'),
+                    ('17', 'en', 'FAILED')):
+                artifact = downloads / f'maestro-android-unicode-{version}-{locale}'
+                artifact.mkdir(parents=True)
+                stem = f'android-unicode-field-{locale}'
+                (artifact / f'{stem}.png').write_bytes(version.encode())
+                (artifact / f'{stem}-baseline-state.txt').write_text('present')
+                (artifact / f'{stem}-baseline.png').write_bytes(b'baseline')
+                (artifact / 'commands.json').write_text(json.dumps([
+                    {'command': {'assertScreenshotCommand': {}},
+                     'metadata': {'status': status}}]))
+
+            output = root / 'report'
+            builder = ScreenshotReport(downloads, output, 'ja', ('android',))
+            report = builder.build()
+
+            self.assertIn('### android 16 / ja\n\nMaestro assertScreenshot: FAILED', report)
+            self.assertIn('### android 17 / ja\n\nMaestro assertScreenshot: COMPLETED', report)
+            self.assertNotIn('/ en', report)
+            self.assertEqual(builder.unavailable, [])
+            for version in ('16', '17'):
+                current = output / f'android-{version}-unicode-field-ja-current.png'
+                self.assertEqual(current.read_bytes(), version.encode())
+
     def test_malformed_maestro_result_is_unavailable(self):
         """An unreadable commands.json becomes an unavailable assertion result."""
         with tempfile.TemporaryDirectory() as directory:
