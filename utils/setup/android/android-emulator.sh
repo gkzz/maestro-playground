@@ -103,6 +103,10 @@ until [[ "$("$adb_cmd" -s "$device_serial" shell id -u 2>/dev/null | tr -d '\r')
   sleep 2
 done
 
+# Prevent emulator app-error dialogs (such as a Pixel Launcher ANR) from
+# covering the app under test after the locale reboot.
+"$adb_cmd" -s "$device_serial" shell settings put global hide_error_dialogs 1
+"$adb_cmd" -s "$device_serial" shell settings put secure anr_show_background 0
 "$adb_cmd" -s "$device_serial" shell setprop persist.sys.locale "$device_locale"
 "$adb_cmd" -s "$device_serial" reboot
 
