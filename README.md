@@ -87,12 +87,12 @@ EOF
 
 Linux 上で Android SDK と Emulator もセットアップする場合は、Makefile の target を使います。
 
-[公式手順](https://developer.android.com/tools/agents/android-cli/download)で Android CLI をインストールし、同じシェルで `ANDROID_HOME` と `ANDROID_SDK_ROOT` を同じ SDK ディレクトリに設定してください。SDK の選択順は `ANDROID_SDK_ROOT`、`ANDROID_HOME`、`/usr/local/lib/android/sdk` です。SDK ステップは `android sdk install` で Command-line Tools 22.0、Platform 36 と `google_apis;x86_64` の system image をインストールします。AVD 作成は固定した Command-line Tools 22.0 の `avdmanager` を使います。新 CLI の `android emulator create` は API / image を指定できず、標準の Play Store image は日本語切り替えに必要な `adb root` を使えないためです。ローカルでは子プロセスの環境変数は親シェルに反映されないため、SDK の `platform-tools` と `emulator` も `PATH` に追加してください。
+[公式手順](https://developer.android.com/tools/agents/android-cli/download)で Android CLI をインストールし、同じシェルで `ANDROID_HOME` と `ANDROID_SDK_ROOT` を同じ SDK ディレクトリに設定してください。SDK の選択順は `ANDROID_SDK_ROOT`、`ANDROID_HOME`、`/usr/local/lib/android/sdk` です。SDK ステップは `android sdk install` で Command-line Tools 22.0、Platform 36 と Android 17 の `google_apis_ps16k;x86_64` system image をインストールします。AVD 作成は固定した Command-line Tools 22.0 の `avdmanager` を使います。新 CLI の `android emulator create` は API / image を指定できず、標準の Play Store image は日本語切り替えに必要な `adb root` を使えないためです。ローカルでは子プロセスの環境変数は親シェルに反映されないため、SDK の `platform-tools` と `emulator` も `PATH` に追加してください。
 
 ```sh
-API_LEVEL=36 ARCH=x86_64 TARGET=google_apis make setup-android-sdk
-API_LEVEL=36 ARCH=x86_64 TARGET=google_apis PROFILE=pixel_9 make setup-android-avd
-API_LEVEL=36 EMULATOR_PORT=5554 make boot-android-emulator
+API_LEVEL=37.0 ARCH=x86_64 TARGET=google_apis_ps16k make setup-android-sdk
+API_LEVEL=37.0 ARCH=x86_64 TARGET=google_apis_ps16k PROFILE=pixel_9 make setup-android-avd
+API_LEVEL=37.0 EMULATOR_PORT=5554 make boot-android-emulator
 ```
 
 ```sh
@@ -166,12 +166,12 @@ Install the locked Flutter SDK with `make install-flutter`.
 After SDK setup, build the APK, start the emulator and install the app:
 
 ```sh
-API_LEVEL=36 ARCH=x86_64 TARGET=google_apis NDK_VERSION=28.2.13676358 make setup-android-sdk
+API_LEVEL=37.0 ARCH=x86_64 TARGET=google_apis_ps16k NDK_VERSION=28.2.13676358 make setup-android-sdk
 make build-demo-app
-API_LEVEL=36 ARCH=x86_64 TARGET=google_apis PROFILE=pixel_9 make setup-android-avd
-API_LEVEL=36 EMULATOR_PORT=5554 make boot-android-emulator
+API_LEVEL=37.0 ARCH=x86_64 TARGET=google_apis_ps16k PROFILE=pixel_9 make setup-android-avd
+API_LEVEL=37.0 E2E_LOCALE=en EMULATOR_PORT=5554 make boot-android-emulator
 make install-android-apps
-make test-android-unicode
+ANDROID_VERSION=17 E2E_LOCALE=en make test-android-unicode
 ```
 
 On macOS, use the same pinned Flutter SDK, Xcode and CocoaPods to build for iOS Simulator.
@@ -196,8 +196,7 @@ Renovate updates the Flutter version and mise lockfile together and never auto-m
 Flutter updates. Before merging, require all three Android flows to pass and
 manually dispatch `ios` to verify all three iOS flows on the update branch.
 If an update changes Flutter's SDK / NDK requirements, adjust those pins in the same PR.
-Android API 36 is a manually selected test target. Emulator binary pinning and
-Renovate management are deferred to a separate PR.
+Emulator binary pinning and Renovate management are deferred to a separate PR.
 
 The source revision is pinned in `e2e/build_demo_app`. Android and iOS builds use
 the build settings from that revision. Verify compatibility with the pinned Flutter
@@ -210,11 +209,35 @@ The flow opens `Input/Keyboard`, inputs `東京` with `inputText`, and checks th
 This tests direct Unicode input, not Japanese keyboard composition or conversion.
 `copyTextFrom` reads into Maestro memory; it does not verify the system clipboard.
 
-Both Android and iOS CI matrices include `unicode`. iOS runs only through manual
-**E2E → Run workflow** dispatch; select this branch and `ios` or `all`.
-Artifacts are saved as `maestro-ios-unicode` for the iOS flow.
+## E2E workflow
+
+Pull requests run the Unicode flow on Android 17 in English and on iOS 26.2
+(iPhone 17 Pro) in Japanese.
+For a manual run, open **E2E → Run workflow** and select the branch, platform
+(`all`, `android` or `ios`). Select `locale` (`ja` or `en`) for iOS and
+`android_configuration` for Android. All three flows
+(Settings, Wikipedia and Unicode) run on each selected platform.
+
+| Android configuration | Selection | Emulator API | System image |
+| --- | --- | --- | --- |
+| `Android 17 & en` | PRs and default for manual runs | `37.0` | `google_apis_ps16k` |
+| `Android 17 & ja` | Manual runs to validate the Japanese locale | `37.0` | `google_apis_ps16k` |
+| `Android 16 & en` | Manual runs | `36` | `google_apis` |
+
+Manual runs with different Android versions can run concurrently. The demo app
+build uses compile SDK 36 for both versions.
+
+To reproduce Android 16 locally, use `API_LEVEL=36` and `TARGET=google_apis` in
+the setup commands above. For local Unicode runs, set `ANDROID_VERSION` to the
+version of the running emulator (`16` or `17`).
+The setting selects the baseline at
+`e2e/baselines/android-<16|17>-unicode-field-<ja|en>.png`. If the matching
+baseline is missing, manual and local runs capture the image for later comparison.
+The Android PR job requires its matching baseline.
+Artifacts are available as `maestro-android-unicode` and `maestro-ios-unicode`.
+
 The default local suites remain settings and Wikipedia; select
-`make test-android-unicode` or `make test-ios-unicode` explicitly.
+`ANDROID_VERSION=17 E2E_LOCALE=en make test-android-unicode` or `make test-ios-unicode` explicitly.
 
 ## GitHub Actions dependencies
 

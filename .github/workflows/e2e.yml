@@ -17,19 +17,28 @@ on:
           - android
           - ios
       locale:
-        description: Device locale
+        description: iOS device locale
         required: true
         default: ja
         type: choice
         options:
           - ja
           - en
+      android_configuration:
+        description: Android OS and locale (Android 17 & ja is available for testing)
+        required: true
+        default: 'Android 17 & en'
+        type: choice
+        options:
+          - 'Android 17 & en'
+          - 'Android 17 & ja'
+          - 'Android 16 & en'
 
 permissions:
   contents: read
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}-${{ github.event_name }}-${{ inputs.platform || 'all' }}-${{ inputs.locale || 'ja' }}
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ github.event_name }}-${{ inputs.platform || 'all' }}-${{ inputs.platform != 'android' && (inputs.locale || 'ja') || 'android' }}${{ inputs.platform != 'ios' && format('-{0}', inputs.android_configuration || 'Android 17 & en') || '' }}
   cancel-in-progress: true
 
 jobs:
@@ -39,7 +48,11 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 45
     env:
-      E2E_LOCALE: ${{ inputs.locale || 'ja' }}
+      E2E_LOCALE: ${{ inputs.android_configuration == 'Android 17 & ja' && 'ja' || 'en' }}
+      ANDROID_VERSION: ${{ inputs.android_configuration == 'Android 16 & en' && '16' || '17' }}
+      API_LEVEL: ${{ inputs.android_configuration == 'Android 16 & en' && '36' || '37.0' }}
+      TARGET: ${{ inputs.android_configuration == 'Android 16 & en' && 'google_apis' || 'google_apis_ps16k' }}
+      COMPILE_SDK: '36'
     strategy:
       fail-fast: false
       matrix:
@@ -72,11 +85,9 @@ jobs:
 
       - name: Setup Android SDK
         env:
-          API_LEVEL: 36
           # Only unicode builds the Flutter demo app.
           NDK_VERSION: ${{ matrix.flow == 'unicode' && '28.2.13676358' || '' }}
           ARCH: x86_64
-          TARGET: google_apis
         run: make setup-android-sdk
 
       - name: Setup Flutter
@@ -91,10 +102,10 @@ jobs:
       - name: Setup Android Emulator
         uses: ./.github/actions/setup-android-emulator
         with:
-          api-level: 36
+          api-level: ${{ env.API_LEVEL }}
           arch: x86_64
           profile: pixel_9
-          target: google_apis
+          target: ${{ env.TARGET }}
           emulator-boot-timeout: 1200
           emulator-options: -no-window -gpu swiftshader -no-snapshot -noaudio -no-boot-anim -accel on -no-metrics -camera-back emulated
 
@@ -119,6 +130,7 @@ jobs:
       - name: Run Maestro on Android
         env:
           E2E_FLOW: ${{ matrix.flow }}
+          E2E_REQUIRE_SCREENSHOT_BASELINE: ${{ github.event_name == 'pull_request' && 'true' || 'false' }}
         run: |
           e2e/test_android_with_retry
 

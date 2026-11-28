@@ -3,7 +3,7 @@ description: Create an AVD and boot an Android Emulator. Requires Android SDK co
 
 inputs:
   api-level:
-    description: Android API level used for the platform and system image.
+    description: Android API level used for the emulator system image.
     required: true
   arch:
     description: Android system image CPU architecture.

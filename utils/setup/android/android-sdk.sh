@@ -2,6 +2,7 @@
 set -euo pipefail
 
 api_level="${API_LEVEL:?API_LEVEL is required}"
+compile_sdk="${COMPILE_SDK:-36}"
 arch="${ARCH:-x86_64}"
 target="${TARGET:-google_apis}"
 sdk_root="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-/usr/local/lib/android/sdk}}"
@@ -36,7 +37,7 @@ command -v "$android_cmd" >/dev/null || {
 packages=(
   "platform-tools"
   "emulator"
-  "platforms/android-${api_level}"
+  "platforms/android-${compile_sdk}"
   "system-images/android-${api_level}/${target}/${arch}"
   "cmdline-tools/$cmdline_tools_version"
   # AGP 9.1.1 in the Flutter demo app requires Build Tools 36.0.0.

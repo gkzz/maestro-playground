@@ -32,12 +32,12 @@ Android / iOS のセットアップの図は [ARCHITECTURE.md](./ARCHITECTURE.md
 
 ローカルではスクリプトを直接実行せず、[Makefile](../Makefile) の target 経由で呼び出します。
 
-[公式手順](https://developer.android.com/tools/agents/android-cli/download)で Android CLI をインストールし、同じシェルで `ANDROID_HOME` と `ANDROID_SDK_ROOT` を同じ SDK ディレクトリに設定してください。SDK の選択順は `ANDROID_SDK_ROOT`、`ANDROID_HOME`、`/usr/local/lib/android/sdk` です。SDK ステップは `android sdk install` で Command-line Tools 22.0、Platform 36 と `google_apis;x86_64` の system image をインストールします。AVD 作成は固定した Command-line Tools 22.0 の `avdmanager` を使います。新 CLI の `android emulator create` は API / image を指定できず、標準の Play Store image は日本語切り替えに必要な `adb root` を使えないためです。ローカルでは子プロセスの環境変数は親シェルに反映されないため、SDK の `platform-tools` と `emulator` も `PATH` に追加してください。
+[公式手順](https://developer.android.com/tools/agents/android-cli/download)で Android CLI をインストールし、同じシェルで `ANDROID_HOME` と `ANDROID_SDK_ROOT` を同じ SDK ディレクトリに設定してください。SDK の選択順は `ANDROID_SDK_ROOT`、`ANDROID_HOME`、`/usr/local/lib/android/sdk` です。SDK ステップは `android sdk install` で Command-line Tools 22.0、Platform 36 と Android 17 の `google_apis_ps16k;x86_64` system image をインストールします。AVD 作成は固定した Command-line Tools 22.0 の `avdmanager` を使います。新 CLI の `android emulator create` は API / image を指定できず、標準の Play Store image は日本語切り替えに必要な `adb root` を使えないためです。ローカルでは子プロセスの環境変数は親シェルに反映されないため、SDK の `platform-tools` と `emulator` も `PATH` に追加してください。
 
 ```
-API_LEVEL=36 ARCH=x86_64 TARGET=google_apis make setup-android-sdk
-API_LEVEL=36 ARCH=x86_64 TARGET=google_apis PROFILE=pixel_9 make setup-android-avd
-API_LEVEL=36 EMULATOR_PORT=5554 make boot-android-emulator
+API_LEVEL=37.0 ARCH=x86_64 TARGET=google_apis_ps16k make setup-android-sdk
+API_LEVEL=37.0 ARCH=x86_64 TARGET=google_apis_ps16k PROFILE=pixel_9 make setup-android-avd
+API_LEVEL=37.0 EMULATOR_PORT=5554 make boot-android-emulator
 ```
 
 ## Android
@@ -80,12 +80,12 @@ Flutter は [`.config/flutter/mise.toml`](../.config/flutter/mise.toml) に指�
 Flutter の更新 PR で確認する内容は [github_actions.md](./github_actions.md) を参照してください。
 
 ```sh
-API_LEVEL=36 ARCH=x86_64 TARGET=google_apis NDK_VERSION=28.2.13676358 make setup-android-sdk
+API_LEVEL=37.0 ARCH=x86_64 TARGET=google_apis_ps16k NDK_VERSION=28.2.13676358 make setup-android-sdk
 make build-demo-app
-API_LEVEL=36 ARCH=x86_64 TARGET=google_apis PROFILE=pixel_9 make setup-android-avd
-API_LEVEL=36 EMULATOR_PORT=5554 make boot-android-emulator
+API_LEVEL=37.0 ARCH=x86_64 TARGET=google_apis_ps16k PROFILE=pixel_9 make setup-android-avd
+API_LEVEL=37.0 E2E_LOCALE=en EMULATOR_PORT=5554 make boot-android-emulator
 make install-android-apps
-make test-android-unicode
+ANDROID_VERSION=17 E2E_LOCALE=en make test-android-unicode
 ```
 
 ## iOS
@@ -172,30 +172,35 @@ E2E_LOCALE=ja E2E_SCREENSHOT_BASELINE="$PWD/local/baselines/android-wikipedia-ja
 `en` が名前に入ります。どちらも各フローの `takeScreenshot/` 配下に出力します。
 
 ```sh
-E2E_LOCALE=ja make test-android-unicode
+ANDROID_VERSION=17 E2E_LOCALE=en make test-android-unicode
 ```
 
 初回はキャプチャを確認し、入力欄の画像を次の場所へコピーしてください。
 
 ```sh
 mkdir -p e2e/baselines
-# takeScreenshot/ 配下の android-unicode-field-ja.png を選んでコピーする
-# 保存先: e2e/baselines/android-unicode-field-ja.png
-E2E_LOCALE=ja make test-android-unicode
+# takeScreenshot/ 配下の android-unicode-field-en.png を選んでコピーする
+# 保存先: e2e/baselines/android-17-unicode-field-en.png
+ANDROID_VERSION=17 E2E_LOCALE=en make test-android-unicode
 ```
 
-`e2e/baselines/<android|ios>-unicode-field-<ja|en>.png` が存在すると、
-同じ OS・ロケールの基準画像と入力欄を `assertScreenshot` で比較します。
+Android は `e2e/baselines/android-<16|17>-unicode-field-<ja|en>.png`、
+iOS は `e2e/baselines/ios-unicode-field-<ja|en>.png` を参照します。
+ローカルで Android を実行する場合は、起動中のエミュレーターに合わせて
+`ANDROID_VERSION` に `16` または `17` を指定してください。
+一致する基準画像があれば、入力欄を `assertScreenshot` で比較します。
 入力欄の `takeScreenshot` の直後に `assertScreenshot` を実行します。
 この間にアプリを再起動したり、入力画面を開き直したりしません。
-基準画像がまだない組み合わせは撮影のみです。
+基準画像がまだない組み合わせは、ローカル実行と手動実行で撮影できます。
+PR の Android ジョブでは、基準画像がなければ撮影後に失敗し、
+候補画像を `maestro-android-unicode` artifact に保存します。
 基準画像は自動更新しません。更新時は画像を確認して差し替えてください。
 
 別の基準画像を使う場合は、既存の `E2E_SCREENSHOT_BASELINE` を指定します。
 明示したパスが存在しなければ比較は失敗します。
 
 ```sh
-E2E_LOCALE=ja E2E_SCREENSHOT_BASELINE="$PWD/local/baselines/android-unicode-field-ja.png" make test-android-unicode
+ANDROID_VERSION=17 E2E_LOCALE=en E2E_SCREENSHOT_BASELINE="$PWD/local/baselines/android-17-unicode-field-en.png" make test-android-unicode
 ```
 
 画面を開き直すことで入力欄のフォーカスを外し、点滅するカーソルを比較対象から除きます。
