@@ -35,10 +35,20 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           SOURCE_RUN_ID: ${{ inputs.run_id }}
+          E2E_LOCALE: ${{ inputs.locale }}
         run: |
-          mkdir -p "$RUNNER_TEMP/captures"
-          gh run download "$SOURCE_RUN_ID" --repo "$GITHUB_REPOSITORY" \
-            --pattern 'maestro-*-unicode' --dir "$RUNNER_TEMP/captures"
+          artifacts=$(gh api --paginate "repos/$GITHUB_REPOSITORY/actions/runs/$SOURCE_RUN_ID/artifacts" \
+            --jq '.artifacts[] | select(.expired == false) | .name')
+          download_failed=0
+          while IFS= read -r artifact; do
+            case "$artifact" in
+              maestro-android-unicode|maestro-ios-unicode|maestro-android-unicode-[0-9][0-9]-"$E2E_LOCALE"|maestro-ios-unicode-[0-9][0-9]-"$E2E_LOCALE")
+                gh run download "$SOURCE_RUN_ID" --repo "$GITHUB_REPOSITORY" \
+                  --name "$artifact" --dir "$RUNNER_TEMP/captures/$artifact" || download_failed=1
+                ;;
+            esac
+          done <<< "$artifacts"
+          exit "$download_failed"
 
       - name: Set capture locale
         env:

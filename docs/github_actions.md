@@ -8,7 +8,7 @@ PR では `Lint` を実行します。`Test` と `E2E` は `docs/**` と Markdow
 
 `Test` ではスクリーンショットレポート生成処理の Python 単体テストを実行します。対象ファイルを変更した PR、`main` への push、手動実行で起動します。
 
-PR の `E2E` では、Android 17 は英語、iOS 26.2（iPhone 17 Pro）は日本語で `unicode` を実行します。手動実行（`workflow_dispatch`）では、`platform` に `all` / `android` / `ios` を指定し、選択したプラットフォームで `settings` / `wikipedia` / `unicode` の3フローを実行します。
+PR の `E2E` では、Android 17 と iOS 27.0（iPhone 18 Pro）で `unicode` を日本語・英語で実行します（4ジョブ）。週次実行は月曜 05:23（日本時間）に Android 16/17 と iOS 26/27 を日本語・英語で検証します（8ジョブ）。手動実行（`workflow_dispatch`）の既定は Android 17 と iOS 27 の日本語です。`platform` に `all` / `android` / `ios` を指定すると、選択したプラットフォームで `settings` / `wikipedia` / `unicode` の3フローを実行します。`ios_configuration` では iOS 27.0 または iOS 26.2（iPhone 17 Pro）を選べます。どちらも日本語（`ja`）と英語（`en`）に対応します。
 
 Maestro CLI のバージョン、Emulator / Simulator の設定、Settings / Wikipedia のフロー、アプリのダウンロード・インストール処理を変更した場合は、マージ前に同じブランチから `platform: all` で手動実行し、全6フローの成功を確認します。
 
@@ -22,13 +22,13 @@ Renovate は mise の標準対応を使い、Flutter の安定版バージョン
 
 Flutter の更新 PR でも、Android / iOS の `unicode` を自動実行します。両 OS の成功を確認してからマージします。Flutter の更新に伴って必要な SDK / NDK が変わった場合は、その PR で設定も調整します。
 
-手動実行では `android_configuration` で `Android 17 & en`（既定、API `37.0`、`google_apis_ps16k`）または `Android 16 & en`（API `36`、`google_apis`）を選びます。Android 17 の日本語ロケールを検証するには `Android 17 & ja` を選びます。`locale` は iOS に適用します。アプリのビルドにはどちらも compile SDK 36 を使います。Emulator 本体の固定と Renovate による管理は、別の PR で扱います。
+手動実行では `android_configuration` で Android 17（API `37.0`、`google_apis_ps16k`）または Android 16（API `36`、`google_apis`）を選びます。どちらも日本語（`ja`）と英語（`en`）に対応します。アプリのビルドにはどちらも compile SDK 36 を使います。Emulator 本体の固定と Renovate による管理は、別の PR で扱います。
 
 ## Unicode フローの画像比較
 
 日本語の基準画像は [Android 16 CI 実行 #41563686593](https://github.com/gkzz/maestro-playground/actions/runs/41563686593) と
-[iOS CI 実行 #41559360999](https://github.com/gkzz/maestro-playground/actions/runs/41559360999) のキャプチャから作成しました。
-CI の `unicode` ジョブは、Android では OS バージョンとロケール、iOS ではロケールに対応する基準画像を使います。PR の Android ジョブには対応する基準画像が必要です。手動実行では基準画像がない組み合わせも撮影できます。
+[iOS 26 CI 実行 #41559360999](https://github.com/gkzz/maestro-playground/actions/runs/41559360999) のキャプチャから作成しました。
+CI の `unicode` ジョブは、OS バージョンとロケールに対応する基準画像を使います。PR と週次実行では基準画像が必須です。手動実行で対応する画像がない場合は撮影のみを行います。基準画像の作成手順は [開発ガイド](DEVELOPMENT.md) を参照してください。
 CI では、既存の Emulator / Simulator のセットアップで `E2E_LOCALE` を適用します。
 ローカルでのキャプチャと比較の手順は [DEVELOPMENT.md](./DEVELOPMENT.md) を参照してください。
 

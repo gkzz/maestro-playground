@@ -105,7 +105,8 @@ make test-android-wikipedia
 iOS Simulator を起動してから実行します。
 
 ```sh
-RUNTIME_NAME="iOS 26.2" DEVICE_TYPE_NAME="iPhone 17 Pro" make setup-ios-simulator
+export DEVELOPER_DIR=/Applications/Xcode_27.app/Contents/Developer
+RUNTIME_NAME="iOS 27.0" DEVICE_TYPE_NAME="iPhone 18 Pro" make setup-ios-simulator
 make download-ios-apps
 make install-ios-apps
 make test-ios-settings
@@ -178,8 +179,11 @@ On macOS, use the same pinned Flutter SDK, Xcode and CocoaPods to build for iOS 
 Start the simulator before installing the app:
 
 ```sh
+export DEVELOPER_DIR=/Applications/Xcode_27.app/Contents/Developer
+export IOS_VERSION=27
+export E2E_LOCALE=en
 make build-demo-app-ios
-RUNTIME_NAME="iOS 26.2" DEVICE_TYPE_NAME="iPhone 17 Pro" make setup-ios-simulator
+RUNTIME_NAME="iOS 27.0" DEVICE_TYPE_NAME="iPhone 18 Pro" make setup-ios-simulator
 make install-ios-apps
 make test-ios-unicode
 ```
@@ -211,18 +215,21 @@ This tests direct Unicode input, not Japanese keyboard composition or conversion
 
 ## E2E workflow
 
-Pull requests run the Unicode flow on Android 17 in English and on iOS 26.2
-(iPhone 17 Pro) in Japanese.
-For a manual run, open **E2E → Run workflow** and select the branch, platform
-(`all`, `android` or `ios`). Select `locale` (`ja` or `en`) for iOS and
-`android_configuration` for Android. All three flows
-(Settings, Wikipedia and Unicode) run on each selected platform.
+| Trigger | Unicode coverage | Baseline |
+| --- | --- | --- |
+| Pull request | Android 17 and iOS 27.0, in Japanese and English (4 jobs) | Required |
+| Weekly, Monday at 05:23 JST | Android 16/17 and iOS 26.2/27.0, in Japanese and English (8 jobs) | Required |
+| Manual | Selected OS and locale on each selected platform | Optional |
 
-| Android configuration | Selection | Emulator API | System image |
-| --- | --- | --- | --- |
-| `Android 17 & en` | PRs and default for manual runs | `37.0` | `google_apis_ps16k` |
-| `Android 17 & ja` | Manual runs to validate the Japanese locale | `37.0` | `google_apis_ps16k` |
-| `Android 16 & en` | Manual runs | `36` | `google_apis` |
+For a manual run, open **E2E → Run workflow**, select the branch and platform
+(`all`, `android` or `ios`), and use `android_configuration` and
+`ios_configuration` to choose a version and locale. The defaults are Android 17
+and iOS 27.0 in Japanese. Each selected platform runs Settings, Wikipedia and Unicode.
+
+| Android version | Emulator API | System image |
+| --- | --- | --- |
+| 17 | `37.0` | `google_apis_ps16k` |
+| 16 | `36` | `google_apis` |
 
 Manual runs with different Android versions can run concurrently. The demo app
 build uses compile SDK 36 for both versions.
@@ -230,14 +237,17 @@ build uses compile SDK 36 for both versions.
 To reproduce Android 16 locally, use `API_LEVEL=36` and `TARGET=google_apis` in
 the setup commands above. For local Unicode runs, set `ANDROID_VERSION` to the
 version of the running emulator (`16` or `17`).
-The setting selects the baseline at
-`e2e/baselines/android-<16|17>-unicode-field-<ja|en>.png`. If the matching
-baseline is missing, manual and local runs capture the image for later comparison.
-The Android PR job requires its matching baseline.
-Artifacts are available as `maestro-android-unicode` and `maestro-ios-unicode`.
+The Unicode flow selects a [baseline by OS version and locale](docs/DEVELOPMENT.md).
+Manual runs capture the screenshot and skip comparison when the matching
+baseline is missing. Set `E2E_REQUIRE_SCREENSHOT_BASELINE=true` to require a
+baseline during local Unicode runs. PR and weekly artifacts use
+`maestro-<platform>-unicode-<os_version>-<locale>`. Manual runs use
+`maestro-<platform>-unicode`.
 
 The default local suites remain settings and Wikipedia; select
-`ANDROID_VERSION=17 E2E_LOCALE=en make test-android-unicode` or `make test-ios-unicode` explicitly.
+`ANDROID_VERSION=17 E2E_LOCALE=en make test-android-unicode` or
+`IOS_VERSION=27 E2E_LOCALE=en make test-ios-unicode` explicitly.
+
 
 ## GitHub Actions dependencies
 

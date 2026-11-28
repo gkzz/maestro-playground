@@ -99,7 +99,8 @@ make test-ios-settings
 Simulator のセットアップには [Makefile](../Makefile) の target を使用します。
 
 ```
-RUNTIME_NAME="iOS 26.2" DEVICE_TYPE_NAME="iPhone 17 Pro" make setup-ios-simulator
+export DEVELOPER_DIR=/Applications/Xcode_27.app/Contents/Developer
+RUNTIME_NAME="iOS 27.0" DEVICE_TYPE_NAME="iPhone 18 Pro" make setup-ios-simulator
 ```
 
 ## Artifacts
@@ -185,15 +186,27 @@ ANDROID_VERSION=17 E2E_LOCALE=en make test-android-unicode
 ```
 
 Android は `e2e/baselines/android-<16|17>-unicode-field-<ja|en>.png`、
-iOS は `e2e/baselines/ios-unicode-field-<ja|en>.png` を参照します。
+iOS は `e2e/baselines/ios-<26|27>-unicode-field-<ja|en>.png` を参照します。
 ローカルで Android を実行する場合は、起動中のエミュレーターに合わせて
 `ANDROID_VERSION` に `16` または `17` を指定してください。
 一致する基準画像があれば、入力欄を `assertScreenshot` で比較します。
+iOS の Unicode フローでは、起動中の Simulator に合わせて
+`IOS_VERSION` に `26` または `27` を指定してください。
+Simulator のセットアップとテストで同じ `E2E_LOCALE` を使います。
+PR では Android 17 と iOS 27 の Unicode フローを日本語・英語で実行します。
+月曜 05:23（日本時間）の週次実行では Android 16/17 と iOS 26/27 を日本語・英語で実行します。
+PR と週次実行では基準画像が必須です。手動実行では、対応する基準画像がない場合も撮影できます。
+
+基準画像を作るには、E2E を手動実行し、対象の OS とロケールを選択します。
+`maestro-<platform>-unicode` artifact の `takeScreenshot/` にある
+`<platform>-unicode-field-<locale>.png` を確認し、
+`e2e/baselines/<platform>-<os_version>-unicode-field-<locale>.png` に保存してください。
+たとえば Android 17 の日本語画像の保存先は
+`e2e/baselines/android-17-unicode-field-ja.png` です。
+PR・週次実行の artifact 名は `maestro-<platform>-unicode-<os_version>-<locale>` です。
+
 入力欄の `takeScreenshot` の直後に `assertScreenshot` を実行します。
 この間にアプリを再起動したり、入力画面を開き直したりしません。
-基準画像がまだない組み合わせは、ローカル実行と手動実行で撮影できます。
-PR の Android ジョブでは、基準画像がなければ撮影後に失敗し、
-候補画像を `maestro-android-unicode` artifact に保存します。
 基準画像は自動更新しません。更新時は画像を確認して差し替えてください。
 
 別の基準画像を使う場合は、既存の `E2E_SCREENSHOT_BASELINE` を指定します。
