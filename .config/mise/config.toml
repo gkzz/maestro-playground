@@ -43,11 +43,13 @@ case "${E2E_FLOW:-}" in
   *) echo "E2E_FLOW must be one of: settings, wikipedia, unicode" >&2; exit 1 ;;
 esac
 screenshot_baseline="${E2E_SCREENSHOT_BASELINE:-}"
-if [ -z "$screenshot_baseline" ] && [ "${E2E_FLOW:-}" = unicode ]; then
-  candidate="$PWD/e2e/baselines/android-unicode-field-$e2e_locale.png"
-  if [ -f "$candidate" ]; then screenshot_baseline="$candidate"; fi
-fi
 if [ "${E2E_FLOW:-}" = unicode ]; then
+  android_version="${ANDROID_VERSION:-}"
+  case "$android_version" in 16|17) ;; *) echo "ANDROID_VERSION must be one of: 16, 17" >&2; exit 1 ;; esac
+  if [ -z "$screenshot_baseline" ]; then
+    candidate="$PWD/e2e/baselines/android-$android_version-unicode-field-$e2e_locale.png"
+    if [ -f "$candidate" ]; then screenshot_baseline="$candidate"; fi
+  fi
   snapshot="$PWD/$output_dir/android-unicode-field-$e2e_locale-baseline.png"
   mkdir -p "$output_dir"
   if [ -n "$screenshot_baseline" ]; then
@@ -55,11 +57,16 @@ if [ "${E2E_FLOW:-}" = unicode ]; then
     screenshot_baseline="$snapshot"
     echo present > "$output_dir/android-unicode-field-$e2e_locale-baseline-state.txt"
   else
+    rm -f "$snapshot"
     echo absent > "$output_dir/android-unicode-field-$e2e_locale-baseline-state.txt"
   fi
 fi
 maestro --version
 maestro "$@" test -e E2E_LOCALE="$e2e_locale" -e SCREENSHOT_BASELINE="$screenshot_baseline" $flow_args --test-output-dir "$output_dir" --debug-output "$output_dir" --flatten-debug-output
+if [ "${E2E_FLOW:-}" = unicode ] && [ "${E2E_REQUIRE_SCREENSHOT_BASELINE:-false}" = true ] && [ -z "$screenshot_baseline" ]; then
+  echo "Missing Android $android_version ($e2e_locale) screenshot baseline: $candidate" >&2
+  exit 1
+fi
 '''
 
 [tasks."maestro:test-ios"]

@@ -25,19 +25,26 @@ class ScreenshotReportTest(unittest.TestCase):
 
     def test_e2e_tasks_use_the_artifact_baseline_snapshot(self):
         config = tomllib.loads(Path('.config/mise/config.toml').read_text())
-        for platform in ('android', 'ios'):
+        for platform, android_version in (('android', '16'), ('android', '17'), ('ios', '')):
+            baseline_platform = f'android-{android_version}' if android_version else platform
             for source in ('default', 'override', 'absent'):
-                with self.subTest(platform=platform, source=source), tempfile.TemporaryDirectory() as directory:
+                with self.subTest(platform=baseline_platform, source=source), tempfile.TemporaryDirectory() as directory:
                     root = Path(directory)
                     binary = root / 'maestro'
                     binary.write_text('#!/bin/sh\nprintf "%s\\n" "$@" >> "$GITHUB_WORKSPACE/args"\n')
                     binary.chmod(0o755)
                     env = dict(os.environ, GITHUB_WORKSPACE=str(root),
-                               E2E_FLOW='unicode', E2E_LOCALE='ja',
-                               E2E_SCREENSHOT_BASELINE='', PATH=f'{root}:/usr/bin:/bin')
+                               E2E_FLOW='unicode', E2E_LOCALE='ja', ANDROID_VERSION=android_version,
+                               E2E_SCREENSHOT_BASELINE='', E2E_REQUIRE_SCREENSHOT_BASELINE='false',
+                               PATH=f'{root}:/usr/bin:/bin')
+                    if android_version:
+                        other_version = '16' if android_version == '17' else '17'
+                        other_baseline = root / 'e2e/baselines' / f'android-{other_version}-unicode-field-ja.png'
+                        other_baseline.parent.mkdir(parents=True)
+                        other_baseline.write_bytes(b'other OS baseline')
                     if source != 'absent':
                         baseline = (root / 'override.png' if source == 'override' else
-                                    root / 'e2e/baselines' / f'{platform}-unicode-field-ja.png')
+                                    root / 'e2e/baselines' / f'{baseline_platform}-unicode-field-ja.png')
                         baseline.parent.mkdir(parents=True, exist_ok=True)
                         baseline.write_bytes(b'selected baseline')
                         if source == 'override':
@@ -54,6 +61,24 @@ class ScreenshotReportTest(unittest.TestCase):
                         self.assertIn(f'SCREENSHOT_BASELINE={snapshot}', (root / 'args').read_text())
                     else:
                         self.assertFalse(snapshot.exists())
+                    if platform == 'android':
+                        task = config['tasks']['maestro:test-android']['run']
+                        result = subprocess.run(
+                            ['sh', '-c', task],
+                            env=dict(env, E2E_REQUIRE_SCREENSHOT_BASELINE='true'),
+                            capture_output=True, text=True,
+                        )
+                        if source == 'absent':
+                            self.assertEqual(result.returncode, 1)
+                            self.assertIn(f'Missing Android {android_version} (ja) screenshot baseline', result.stderr)
+                        else:
+                            result.check_returncode()
+                        result = subprocess.run(
+                            ['sh', '-c', task], env=dict(env, ANDROID_VERSION=''),
+                            capture_output=True, text=True,
+                        )
+                        self.assertEqual(result.returncode, 1)
+                        self.assertIn('ANDROID_VERSION must be one of: 16, 17', result.stderr)
 
     def test_missing_target_capture_fails_cli_after_summary(self):
         for platform in ('android', 'ios', 'all'):
