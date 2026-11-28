@@ -25,8 +25,11 @@ class ScreenshotReportTest(unittest.TestCase):
 
     def test_e2e_tasks_use_the_artifact_baseline_snapshot(self):
         config = tomllib.loads(Path('.config/mise/config.toml').read_text())
-        for platform, android_version in (('android', '16'), ('android', '17'), ('ios', '')):
-            baseline_platform = f'android-{android_version}' if android_version else platform
+        for platform, version, other_version in (
+            ('android', '16', '17'), ('android', '17', '16'),
+            ('ios', '26', '27'), ('ios', '27', '26'),
+        ):
+            baseline_platform = f'{platform}-{version}'
             for locale in ('en', 'ja'):
                 for source in ('default', 'override', 'absent'):
                     with self.subTest(platform=baseline_platform, locale=locale, source=source), tempfile.TemporaryDirectory() as directory:
@@ -35,7 +38,9 @@ class ScreenshotReportTest(unittest.TestCase):
                         binary.write_text('#!/bin/sh\nprintf "%s\\n" "$@" >> "$GITHUB_WORKSPACE/args"\n')
                         binary.chmod(0o755)
                         env = dict(os.environ, GITHUB_WORKSPACE=str(root),
-                                   E2E_FLOW='unicode', E2E_LOCALE=locale, ANDROID_VERSION=android_version,
+                                   E2E_FLOW='unicode', E2E_LOCALE=locale,
+                                   ANDROID_VERSION=version if platform == 'android' else '',
+                                   IOS_VERSION=version if platform == 'ios' else '',
                                    E2E_SCREENSHOT_BASELINE='', E2E_REQUIRE_SCREENSHOT_BASELINE='false',
                                    PATH=f'{root}:/usr/bin:/bin')
                         other_locale = 'en' if locale == 'ja' else 'ja'
@@ -44,10 +49,8 @@ class ScreenshotReportTest(unittest.TestCase):
                         (baselines / f'{baseline_platform}-unicode-field-{other_locale}.png').write_bytes(
                             b'other locale baseline',
                         )
-                        if android_version:
-                            other_version = '16' if android_version == '17' else '17'
-                            other_baseline = root / 'e2e/baselines' / f'android-{other_version}-unicode-field-{locale}.png'
-                            other_baseline.write_bytes(b'other OS baseline')
+                        other_baseline = baselines / f'{platform}-{other_version}-unicode-field-{locale}.png'
+                        other_baseline.write_bytes(b'other OS baseline')
                         if source != 'absent':
                             baseline = (root / 'override.png' if source == 'override' else
                                         root / 'e2e/baselines' / f'{baseline_platform}-unicode-field-{locale}.png')
@@ -55,11 +58,14 @@ class ScreenshotReportTest(unittest.TestCase):
                             baseline.write_bytes(b'selected baseline')
                             if source == 'override':
                                 env['E2E_SCREENSHOT_BASELINE'] = str(baseline)
-                        subprocess.run(['sh', '-c', config['tasks'][f'maestro:test-{platform}']['run']],
-                                       env=env, check=True, capture_output=True)
                         artifact = root / 'artifacts/maestro' / platform / 'unicode'
                         stem = f'{platform}-unicode-field-{locale}'
                         snapshot = artifact / f'{stem}-baseline.png'
+                        if source == 'absent':
+                            artifact.mkdir(parents=True)
+                            snapshot.write_bytes(b'stale baseline')
+                        task = config['tasks'][f'maestro:test-{platform}']['run']
+                        subprocess.run(['sh', '-c', task], env=env, check=True, capture_output=True)
                         self.assertEqual((artifact / f'{stem}-baseline-state.txt').read_text().strip(),
                                          'absent' if source == 'absent' else 'present')
                         self.assertIn(f'E2E_LOCALE={locale}', (root / 'args').read_text().splitlines())
@@ -68,24 +74,25 @@ class ScreenshotReportTest(unittest.TestCase):
                             self.assertIn(f'SCREENSHOT_BASELINE={snapshot}', (root / 'args').read_text())
                         else:
                             self.assertFalse(snapshot.exists())
-                        if platform == 'android':
-                            task = config['tasks']['maestro:test-android']['run']
-                            result = subprocess.run(
-                                ['sh', '-c', task],
-                                env=dict(env, E2E_REQUIRE_SCREENSHOT_BASELINE='true'),
-                                capture_output=True, text=True,
-                            )
-                            if source == 'absent':
-                                self.assertEqual(result.returncode, 1)
-                                self.assertIn(f'Missing Android {android_version} ({locale}) screenshot baseline', result.stderr)
-                            else:
-                                result.check_returncode()
-                            result = subprocess.run(
-                                ['sh', '-c', task], env=dict(env, ANDROID_VERSION=''),
-                                capture_output=True, text=True,
-                            )
+                        result = subprocess.run(
+                            ['sh', '-c', task],
+                            env=dict(env, E2E_REQUIRE_SCREENSHOT_BASELINE='true'),
+                            capture_output=True, text=True,
+                        )
+                        if source == 'absent':
                             self.assertEqual(result.returncode, 1)
-                            self.assertIn('ANDROID_VERSION must be one of: 16, 17', result.stderr)
+                            platform_name = 'Android' if platform == 'android' else 'iOS'
+                            self.assertIn(f'Missing {platform_name} {version} ({locale}) screenshot baseline',
+                                          result.stderr)
+                        else:
+                            result.check_returncode()
+                        version_var = f'{platform.upper()}_VERSION'
+                        result = subprocess.run(
+                            ['sh', '-c', task], env=dict(env, **{version_var: ''}),
+                            capture_output=True, text=True,
+                        )
+                        self.assertEqual(result.returncode, 1)
+                        self.assertIn(f'{version_var} must be one of:', result.stderr)
 
     def test_missing_target_capture_fails_cli_after_summary(self):
         for platform in ('android', 'ios', 'all'):

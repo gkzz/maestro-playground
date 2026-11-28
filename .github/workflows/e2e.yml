@@ -3,8 +3,10 @@ name: E2E
 on:
   pull_request:
     paths-ignore:
-      - 'docs/**'
-      - '**/*.md'
+      - "docs/**"
+      - "**/*.md"
+  schedule:
+    - cron: "23 20 * * 0" # Monday 05:23 JST
   workflow_dispatch:
     inputs:
       platform:
@@ -16,48 +18,52 @@ on:
           - all
           - android
           - ios
-      locale:
-        description: iOS device locale
-        required: true
-        default: ja
-        type: choice
-        options:
-          - ja
-          - en
       android_configuration:
-        description: Android OS and locale (Android 17 & ja is available for testing)
+        description: Android OS and locale
         required: true
-        default: 'Android 17 & en'
+        default: "Android 17 & ja"
         type: choice
         options:
-          - 'Android 17 & en'
-          - 'Android 17 & ja'
-          - 'Android 16 & en'
+          - "Android 17 & en"
+          - "Android 17 & ja"
+          - "Android 16 & en"
+          - "Android 16 & ja"
+      ios_configuration:
+        description: iOS Simulator OS and locale
+        required: true
+        default: "iOS 27 & ja"
+        type: choice
+        options:
+          - "iOS 27 & en"
+          - "iOS 27 & ja"
+          - "iOS 26 & ja"
+          - "iOS 26 & en"
 
 permissions:
   contents: read
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}-${{ github.event_name }}-${{ inputs.platform || 'all' }}-${{ inputs.platform != 'android' && (inputs.locale || 'ja') || 'android' }}${{ inputs.platform != 'ios' && format('-{0}', inputs.android_configuration || 'Android 17 & en') || '' }}
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ github.event_name }}-${{ inputs.platform || 'all' }}${{ inputs.platform != 'ios' && format('-{0}', inputs.android_configuration || 'Android 17 & ja') || '' }}${{ inputs.platform != 'android' && format('-{0}', inputs.ios_configuration || 'iOS 27 & ja') || '' }}
   cancel-in-progress: true
 
 jobs:
   test-android:
-    name: Android / ${{ matrix.display_name }}
-    if: ${{ github.event_name == 'pull_request' || inputs.platform == 'all' || inputs.platform == 'android' }}
+    name: Android / ${{ matrix.flow }} / ${{ matrix.os_version }} / ${{ matrix.locale }}
+    if: ${{ github.event_name != 'workflow_dispatch' || inputs.platform == 'all' || inputs.platform == 'android' }}
     runs-on: ubuntu-latest
     timeout-minutes: 45
     env:
-      E2E_LOCALE: ${{ inputs.android_configuration == 'Android 17 & ja' && 'ja' || 'en' }}
-      ANDROID_VERSION: ${{ inputs.android_configuration == 'Android 16 & en' && '16' || '17' }}
-      API_LEVEL: ${{ inputs.android_configuration == 'Android 16 & en' && '36' || '37.0' }}
-      TARGET: ${{ inputs.android_configuration == 'Android 16 & en' && 'google_apis' || 'google_apis_ps16k' }}
-      COMPILE_SDK: '36'
+      E2E_LOCALE: ${{ matrix.locale }}
+      ANDROID_VERSION: ${{ matrix.os_version }}
+      API_LEVEL: ${{ matrix.os_version == '16' && '36' || '37.0' }}
+      TARGET: ${{ matrix.os_version == '16' && 'google_apis' || 'google_apis_ps16k' }}
+      COMPILE_SDK: "36"
     strategy:
       fail-fast: false
       matrix:
-        # PRs cover Unicode on both platforms; manual runs retain all flows.
-        include: ${{ fromJSON(github.event_name == 'pull_request' && '[{"flow":"unicode","display_name":"Unicode input and screenshot","requires_apps":true}]' || '[{"flow":"settings","display_name":"Settings","requires_apps":false},{"flow":"wikipedia","display_name":"Wikipedia","requires_apps":true},{"flow":"unicode","display_name":"Unicode input and screenshot","requires_apps":true}]') }}
+        os_version: ${{ fromJSON(github.event_name == 'schedule' && '["16","17"]' || (github.event_name == 'workflow_dispatch' && startsWith(inputs.android_configuration, 'Android 16 & ')) && '["16"]' || '["17"]') }}
+        locale: ${{ fromJSON(github.event_name != 'workflow_dispatch' && '["ja","en"]' || endsWith(inputs.android_configuration, ' & ja') && '["ja"]' || '["en"]') }}
+        flow: ${{ fromJSON(github.event_name == 'workflow_dispatch' && '["settings","wikipedia","unicode"]' || '["unicode"]') }}
 
     steps:
       - name: Enable KVM group perms
@@ -78,7 +84,7 @@ jobs:
         uses: actions/setup-java@v6.2.0
         with:
           distribution: temurin
-          java-version: '17.0.21+9'
+          java-version: "17.0.21+9"
 
       - name: Install Android CLI
         run: bash setup/android-cli-install.sh
@@ -118,7 +124,7 @@ jobs:
           } > local/android.env
 
       - name: Install test apps
-        if: ${{ matrix.requires_apps && matrix.flow != 'unicode' }}
+        if: ${{ matrix.flow == 'wikipedia' }}
         run: |
           e2e/download_apps android
           e2e/install_apps android
@@ -130,7 +136,7 @@ jobs:
       - name: Run Maestro on Android
         env:
           E2E_FLOW: ${{ matrix.flow }}
-          E2E_REQUIRE_SCREENSHOT_BASELINE: ${{ github.event_name == 'pull_request' && 'true' || 'false' }}
+          E2E_REQUIRE_SCREENSHOT_BASELINE: ${{ matrix.flow == 'unicode' && github.event_name != 'workflow_dispatch' }}
         run: |
           e2e/test_android_with_retry
 
@@ -142,23 +148,25 @@ jobs:
         uses: actions/upload-artifact@v7.0.2
         if: always()
         with:
-          name: maestro-android-${{ matrix.flow }}
+          name: maestro-android-${{ matrix.flow }}${{ github.event_name != 'workflow_dispatch' && format('-{0}-{1}', matrix.os_version, matrix.locale) || '' }}
           path: artifacts/maestro/android/${{ matrix.flow }}
           retention-days: 1
 
   test-ios:
-    name: iOS / ${{ matrix.display_name }}
-    if: ${{ github.event_name == 'pull_request' || inputs.platform == 'all' || inputs.platform == 'ios' }}
-    runs-on: macos-26
+    name: iOS / ${{ matrix.flow }} / ${{ matrix.os_version }} / ${{ matrix.locale }}
+    if: ${{ github.event_name != 'workflow_dispatch' || inputs.platform == 'all' || inputs.platform == 'ios' }}
+    runs-on: ${{ matrix.os_version == '26' && 'macos-26' || 'xcode-27' }}
     timeout-minutes: 120
     env:
-      E2E_LOCALE: ${{ inputs.locale || 'ja' }}
+      E2E_LOCALE: ${{ matrix.locale }}
+      IOS_VERSION: ${{ matrix.os_version }}
       MAESTRO_DRIVER_STARTUP_TIMEOUT: 240000
     strategy:
       fail-fast: false
       matrix:
-        # PRs cover Unicode on both platforms; manual runs retain all flows.
-        include: ${{ fromJSON(github.event_name == 'pull_request' && '[{"flow":"unicode","display_name":"Unicode input and screenshot","requires_apps":true}]' || '[{"flow":"settings","display_name":"Settings","requires_apps":false},{"flow":"wikipedia","display_name":"Wikipedia","requires_apps":true},{"flow":"unicode","display_name":"Unicode input and screenshot","requires_apps":true}]') }}
+        os_version: ${{ fromJSON(github.event_name == 'schedule' && '["26","27"]' || (github.event_name == 'workflow_dispatch' && startsWith(inputs.ios_configuration, 'iOS 26 & ')) && '["26"]' || '["27"]') }}
+        locale: ${{ fromJSON(github.event_name != 'workflow_dispatch' && '["ja","en"]' || endsWith(inputs.ios_configuration, ' & ja') && '["ja"]' || '["en"]') }}
+        flow: ${{ fromJSON(github.event_name == 'workflow_dispatch' && '["settings","wikipedia","unicode"]' || '["unicode"]') }}
 
     steps:
       - uses: actions/checkout@v7.0.1
@@ -167,6 +175,10 @@ jobs:
         uses: ./.github/actions/setup-mise
         with:
           install: "true"
+
+      - name: Select Xcode 27
+        if: ${{ env.IOS_VERSION == '27' }}
+        run: echo 'DEVELOPER_DIR=/Applications/Xcode_27.app/Contents/Developer' >> "$GITHUB_ENV"
 
       - name: Setup Flutter
         if: ${{ matrix.flow == 'unicode' }}
@@ -179,11 +191,11 @@ jobs:
       - name: Setup iOS Simulator
         uses: ./.github/actions/setup-ios-simulator
         with:
-          runtime-name: iOS 26.2
-          device-type-name: iPhone 17 Pro
+          runtime-name: ${{ env.IOS_VERSION == '26' && 'iOS 26.2' || 'iOS 27.0' }}
+          device-type-name: ${{ env.IOS_VERSION == '26' && 'iPhone 17 Pro' || 'iPhone 18 Pro' }}
 
       - name: Install test apps
-        if: ${{ matrix.requires_apps && matrix.flow != 'unicode' }}
+        if: ${{ matrix.flow == 'wikipedia' }}
         run: |
           e2e/download_apps ios
           e2e/install_apps ios
@@ -195,6 +207,7 @@ jobs:
       - name: Run Maestro on iOS
         env:
           E2E_FLOW: ${{ matrix.flow }}
+          E2E_REQUIRE_SCREENSHOT_BASELINE: ${{ matrix.flow == 'unicode' && github.event_name != 'workflow_dispatch' }}
         run: |
           mise run maestro:test-ios
 
@@ -202,7 +215,7 @@ jobs:
         uses: actions/upload-artifact@v7.0.2
         if: always()
         with:
-          name: maestro-ios-${{ matrix.flow }}
+          name: maestro-ios-${{ matrix.flow }}${{ github.event_name != 'workflow_dispatch' && format('-{0}-{1}', matrix.os_version, matrix.locale) || '' }}
           path: artifacts/maestro/ios/${{ matrix.flow }}
           retention-days: 1
 
@@ -218,5 +231,5 @@ jobs:
   #   uses: gkzz/maestro-playground/.github/workflows/screenshot-report.yml@main
   #   with:
   #     run_id: ${{ github.run_id }}
-  #     locale: ${{ inputs.locale || 'ja' }}
+  #     locale: ${{ endsWith(inputs.ios_configuration || 'iOS 27 & ja', ' & ja') && 'ja' || 'en' }}
   #     platform: ${{ github.event_name == 'pull_request' && 'all' || inputs.platform }}

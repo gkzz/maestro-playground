@@ -1,0 +1,4 @@
+# GitHub-hosted public preview label missing from actionlint 1.7.12.
+self-hosted-runner:
+  labels:
+    - xcode-27
