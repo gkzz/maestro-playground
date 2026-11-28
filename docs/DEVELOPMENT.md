@@ -83,7 +83,7 @@ Flutter の更新 PR で確認する内容は [github_actions.md](./github_actio
 API_LEVEL=37.0 ARCH=x86_64 TARGET=google_apis_ps16k NDK_VERSION=28.2.13676358 make setup-android-sdk
 make build-demo-app
 API_LEVEL=37.0 ARCH=x86_64 TARGET=google_apis_ps16k PROFILE=pixel_9 make setup-android-avd
-API_LEVEL=37.0 EMULATOR_PORT=5554 make boot-android-emulator
+API_LEVEL=37.0 E2E_LOCALE=en EMULATOR_PORT=5554 make boot-android-emulator
 make install-android-apps
 ANDROID_VERSION=17 E2E_LOCALE=en make test-android-unicode
 ```
